@@ -16,7 +16,7 @@ If screen has width of 1920px and DPR of 2, maximum width viewport is 960px in C
 _Viewport width = (physical pixels / device pixel ratio)_
 
 ##### Setting viewport
-Meta viewport tag in head
+Meta viewport tag in head:
 
 width = device width in DIPs
 
@@ -96,26 +96,26 @@ See lessons:
 
     @media screen and (max-width:499px) { display:none }
 
-2. No more tables (transpose)
-    Position redundant elements way off grid (`-9999`)
-3. Contained scrolling
-    In CSS of table, add `overflow-x:auto`
+2. No more tables (transpose): Position redundant elements way off grid (`-9999`)
+
+3. Contained scrolling: In CSS of table, add `overflow-x:auto`
 
 ##### Fonts
 Measure +- 65 characters per line (see Ellipsis... for smaller viewports) with size 16px and line height 1.2em.
 
 ##### Images
-Use relative sizes to avoid overflowing; 
-use picture element for art direction (different sources with media matches);
-inside picture element, use srcset attribute for high DPI devices; 
-use sizes attribute and media queries to specify size.
+* Use relative sizes to avoid overflowing; 
+* use picture element for art direction (different sources with media matches);
+* inside picture element, use srcset attribute for high DPI devices; 
+* use sizes attribute and media queries to specify size.
+
 _Use media queries to change what image is used at what viewport width. Note that sometimes it's better to just not show images when viewport is small._
 
 ---
 
 [*] Block versus inline
-__Block level content__ takes up all horizontal space it gets, no matter how much the content needs.
-__Inline level content__ takes only the space its content needs to fit in (content determines properties). Inline normally does not accept width, height, top/botton margin properties.
+* __Block level content__ takes up all horizontal space it gets, no matter how much the content needs.
+* __Inline level content__ takes only the space its content needs to fit in (content determines properties). Inline normally does not accept width, height, top/botton margin properties.
 
 ---
 
