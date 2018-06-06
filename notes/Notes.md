@@ -120,7 +120,9 @@ _Use media queries to change what image is used at what viewport width. Note tha
 ---
 
 WIDTH = MARGIN LEFT + BORDER LEFT + PADDING LEFT + CONTENT WIDTH + PADDING RIGHT + BORDER RIGHT + MARGIN RIGHT
+
 _Padding: space between content and border_
+
 _Margin: space between different elements_
 
 ---
@@ -128,9 +130,11 @@ _Margin: space between different elements_
 # Javascript ES6 updates
 
 1. Let and const
-    __Let__ can be reassigned but cannot be re-declared in the same scope
-    __Const__ must be assigned an initial value, cannot be re-declared in the same scope and cannot be reassigned
-    Let and const eliminate the issue of hoisting. They are scoped to the block, not to the function (temporal dead zone). Variables can only be accessed after declaration.
+* __Let__ can be reassigned but cannot be re-declared in the same scope
+* __Const__ must be assigned an initial value, cannot be re-declared in the same scope and cannot be reassigned
+
+Let and const eliminate the issue of hoisting. They are scoped to the block, not to the function (temporal dead zone). Variables can only be accessed after declaration.
+
 2. Template literals
 
 
@@ -156,11 +160,11 @@ _Margin: space between different elements_
     } // Will only loop over the values
 
 6. Spread operator
-    Expand or spread iterable objects into multiple elements
-    ... (structure) > unbox
+    
+Expand or spread iterable objects into multiple elements: `... (structure) > unbox`
 7. Rest parameter
-    Represent indefinite number of elements into array
-    ... (destructure) > box
+
+Represent indefinite number of elements into array: `... (destructure) > box`
 
 # Shell workshop
 
@@ -197,6 +201,7 @@ wc | word count (-l lines)
 grep -c | word count (same as wc)
 
 GUI = click and drag and nicely visualized
+
 SHELL = underlying code
 
 [...]
@@ -206,10 +211,14 @@ A [full parse representation](https://www.w3schools.com/js/pic_htmltree.gif) of 
 
 Conversion:
 HTML tags > tokens > nodes > DOM
+
 _where tokens are DOCTYPE, start tag, end tag, comment, character, end-of-file_
-__#x = id
-.x = class
-x = tag (e.g. p)__
+
+__#x = id__
+
+__.x = class__
+
+__x = tag (e.g. p)__
 
     const varId = document.getElementById('idname);
     const varClass = document.getElementsByClassName('classname'); // Returns multiple elements as HTML collection (not array)
@@ -218,15 +227,22 @@ x = tag (e.g. p)__
     const varAlternativeExample = document.querySelector('p .ok'); // First p tag with class ok
     
 ### Blueprints/interfaces
+
 `Node` = blueprint with properties and methods (`.property`, `.method()`)
+
 `node` = actual objects built from blueprint
+
 `Element` = type of node, blueprint for creating elements
+
 _There's many more like this!_ 
 
 ### Creating content with Javascript
 ##### Modifying existing content
+
 `element.innerHTML` returns HTML content _inside_ this element
+
 `element.textContent` returns _just the text_ content inside this element (no CSS)
+
 `element.innerText` returns text plus CSS
 
 ##### Add new content
@@ -265,30 +281,40 @@ Easier way:
 
 ##### Accessing classes
 `.className` returns string of classes that selector has (split through `.split('')` and push/pop/for...loop in array)
+
 `.className = "name-class"` sets class and erases all former classes in selector
 
 Alternatively,
     `.classList` returns DOMtoken list
-    To which you chain `.add()`, `.remove()`, `.toggle()` or `contains()`
+
+To which you chain `.add()`, `.remove()`, `.toggle()` or `contains()`
     
 ### Browser events
 `(un)monitorEvents(document)`
+
 Right before `</body>`: `<script src="app.js"></script>`
 
 Interfaces: EventTarget < Node < Element
+
 _EventTarget_: element, document and window are most common. No properties but three methods: 
 1. `.addEventListener()`
 
 
     <event-target>.addEventListener('<event-to-listen-for>, <function-to-run>)
+
 Event to listen for: TYPE (click, scroll, resize, submit)
+
 Function to run: LISTENER/HANDLER
+
 2. `.removeEventListener()`
+
     Requires passing exact same listener function as .addElementListener. Has to __refer__ (!) to exact same function.
+
 3. `.dispatchEvent()`
 
 ##### Event phases: how to control events
 Capture (go down HTML to find target/element) > At target (running of handlers) > Bubbling (works way back up the HTML, executing bottom up)
+
 By default, functions only run in bubbling phase, unless you add a thrid parameter to the .addEventListener event: true. Then it will run in capturing phase. E.g.
 
     document.addElementListener('click', function() {
@@ -328,8 +354,8 @@ P.S. Checking for NodeType: `event.target.nodeName === 'SPAN'` (or whatever)
     // time = end - start
     
 JavaScript concurrency model:
-Run-to-completion JavaScript
-Run pending event handlers (event loop: call stack, web API/browser, event queue)
+* Run-to-completion JavaScript
+* Run pending event handlers (event loop: call stack, web API/browser, event queue)
 
 ##### Running code later
 
