@@ -18,9 +18,9 @@ _Viewport width = (physical pixels / device pixel ratio)_
 ##### Setting viewport
 Meta viewport tag in head
 
-    width = device width in DIPs
+width = device width in DIPs
 
-    initial scale = 1 (1:1 relationship DIP:CSS)
+initial scale = 1 (1:1 relationship DIP:CSS)
 
 ##### Setting element width
 Use relative instead of absolute positions, so that elements don't overflow container, but take up full viewport (e.g. 100%). Add to main.css:
