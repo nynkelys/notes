@@ -7,7 +7,8 @@ __Head__: general info and metadata
 __Body__: visible content
 __Device emulation__: `ctrl+shift+j` (toggle device toolbar). You can also debug remotely, using a real device.
 
-_Pixels_: Device Independent Pixels map to hardware pixels via device pixel ratio - only in one dimension (up or down). Developers need CSS pixels. Differences between devices despite equal resolutions are likely caused by:
+_Pixels_: Device Independent Pixels map to hardware pixels via device pixel ratio - only in one dimension (up or down). 
+Developers need CSS pixels. Differences between devices despite equal resolutions are likely caused by:
 - Viewport settings (without defining viewport, you leave it up to browser to decide)
 - Device pixel ratio
 
@@ -16,7 +17,9 @@ _Viewport width = (physical pixels / device pixel ratio)_
 
 ##### Setting viewport
 Meta viewport tag in head
+
     width = device width in DIPs
+
     initial scale = 1 (1:1 relationship DIP:CSS)
 
 ##### Setting element width
