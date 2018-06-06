@@ -2,7 +2,7 @@
 
 ---
 
-# Responsiveness
+### Responsiveness
 __Head__: general info and metadata
 __Body__: visible content
 __Device emulation__: `ctrl+shift+j` (toggle device toolbar). You can also debug remotely, using a real device.
@@ -169,7 +169,153 @@ Command | Description
 echo | print
 $word | word is variable
 ls | list (just ls or e.g. ls Downloads)
+cd | change directory
+.. | parent directory
+; | combine two commands
+pwd | print working directory
+. | current directory
+~ | home directory
+-option | option for argument (e.g. ls -l)
+[*] | all (pattern)
+mkdir | make dir
+mv | move ('from' to)
+curl | see url (show source code, compressed JS)
+curl -l | follow redirects (download pages/files by url)
+curl -o | filenametosaveunder.html -L 'waht to operate on (URL)'
+cat | output content (read)
+less | shows one screen full (b = go back; / = search)
+q | quit
+rm | remove (trash can = -i interactive)
+rmdir | remove dir
+grep | search text file (e.g. grep hello text.txt \| less; \| is pipe)
+mkdir | make dir
+pwd | print wd
+wc | word count (-l lines)
+grep -c | word count (same as wc)
 
+GUI = click and drag and nicely visualized
+SHELL = underlying code
+
+[...]
+
+# The document object model
+A [full parse representation](https://www.w3schools.com/js/pic_htmltree.gif) of HTML markup (content and properties of HTML and all relationships between nodes).
+
+Conversion:
+HTML tags > tokens > nodes > DOM
+_where tokens are DOCTYPE, start tag, end tag, comment, character, end-of-file_
+__#x = id
+.x = class
+x = tag (e.g. p)__
+
+    const varId = document.getElementById('idname);
+    const varClass = document.getElementsByClassName('classname'); // Returns multiple elements as HTML collection (not array)
+    const varTag = document.getElementsByTagName('tagname'); // "
+    const varAlternative = document.querySelector('#', '.', 'x'); // Only returns first result, alternative querySelectorAll
+    const varAlternativeExample = document.querySelector('p .ok'); // First p tag with class ok
+    
+### Blueprints/interfaces
+`Node` = blueprint with properties and methods (`.property`, `.method()`)
+`node` = actual objects built from blueprint
+`Element` = type of node, blueprint for creating elements
+_There's many more like this!_ 
+
+### Creating content with Javascript
+##### Modifying existing content
+`element.innerHTML` returns HTML content _inside_ this element
+`element.textContent` returns _just the text_ content inside this element (no CSS)
+`element.innerText` returns text plus CSS
+
+##### Add new content
+    const container = document.createElement('span');
+    container.textContent = 'Hello!'
+    const placeToPut = document.querySelector('h1');
+    placeToPut.appendChild(container);
+
+`appendChild` adds at end. Alternatively:
+
+    .insertAdjacentHTML('locationHTML', textToInsert);
+where locationHTML can be either beforebegin [1], beforeend [2], afterbegin [3], afterend [4]:
+
+    [1]<p>[2]
+        Text/HTML
+    [3]</p>[4]
+
+##### Remove content
+    parentElement.removeChild(childToRemove); 
+
+Walkaround:
+
+    childToRemove.parentElement.removeChild(childToRemove);
+
+Easier way:
+
+    childToRemove.remove(); // childToRemove or whatever to remove
+
+##### Style content
+1. `varName.style.color = 'red';`
+    `.style` accepts one CSS style a time.
+2. `varName.style.cssText = 'color:blue; font-size:3.5em; ...;`
+    Write as in style sheet. These will overwrite what's already in style attribute tag.
+3. `varName.setAttribute('style', 'color:blue; font-size:3.5em, ...');`
+    This is not just for styling, but for setting any attribute.
+
+##### Accessing classes
+`.className` returns string of classes that selector has (split through `.split('')` and push/pop/for...loop in array)
+`.className = "name-class"` sets class and erases all former classes in selector
+
+Alternatively,
+    `.classList` returns DOMtoken list
+    To which you chain `.add()`, `.remove()`, `.toggle()` or `contains()`
+    
+### Browser events
+`(un)monitorEvents(document)`
+Right before `</body>`: `<script src="app.js"></script>`
+
+Interfaces: EventTarget < Node < Element
+_EventTarget_: element, document and window are most common. No properties but three methods: 
+1. `.addEventListener()`
+
+
+    <event-target>.addEventListener('<event-to-listen-for>, <function-to-run>)
+Event to listen for: TYPE (click, scroll, resize, submit)
+Function to run: LISTENER/HANDLER
+2. `.removeEventListener()`
+    Requires passing exact same listener function as .addElementListener. Has to __refer__ (!) to exact same function.
+3. `.dispatchEvent()`
+
+##### Event phases: how to control events
+Capture (go down HTML to find target/element) > At target (running of handlers) > Bubbling (works way back up the HTML, executing bottom up)
+By default, functions only run in bubbling phase, unless you add a thrid parameter to the .addEventListener event: true. Then it will run in capturing phase. E.g.
+
+    document.addElementListener('click', function() {
+        // code;
+    }, true); 
+
+To store the event data passed to it:
+
+    document.addElementListener('click', function(e) {
+        e.preventDefault(); // to prevent default form happening, if you first want to do something else (inside element, event.target is element that was clicked)
+        // code;
+    }, true);
+
+Refactoring the number of event listeners, by applying function and type to parent of all elements in an element. To still have access to individual elements, use _event delegation_. E.g.
+
+    const Div = document.createElement('div'); // Create Div element
+    function respondToClick(e) { // Function for what to do when one <p> is clicked
+        console.log('Paragraph was clicked: ' + e.target.textContent);
+        for (let i=1, i <= 200, i++) { // 200x loop
+            const newEl = document.createElement('p'); // Create new element <p>
+            newEl.textContent = 'Paragraph no.' + i; // Add content
+            Div.appendChild(newEl); // Add to Div
+        }
+    } 
+        
+        document.body.appendChild(Div); // Add Div to body
+        Div.addEventListener('click', respondToClick); // Only now is it linked to function for clicking
+
+P.S. Checking for NodeType: `event.target.nodeName === 'SPAN'` (or whatever)
+    
 # Object-oriented programming in JavaScript
 
 ### What is an object and how do I create it?
