@@ -315,7 +315,27 @@ Refactoring the number of event listeners, by applying function and type to pare
         Div.addEventListener('click', respondToClick); // Only now is it linked to function for clicking
 
 P.S. Checking for NodeType: `event.target.nodeName === 'SPAN'` (or whatever)
+
+### Performance
+`performance.now()`:
+
+    const start = performance.now();
+    // code to measure performance of
+    const end = performance.now();
+    // time = end - start
     
+JavaScript concurrency model:
+Run-to-completion JavaScript
+Run pending event handlers (event loop: call stack, web API/browser, event queue)
+
+##### Running code later
+
+    setTimeOut(function toRunLater() {
+        // code
+    }, 1000);
+
+[...]
+
 # Object-oriented programming in JavaScript
 
 ### What is an object and how do I create it?
