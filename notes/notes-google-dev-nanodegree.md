@@ -91,6 +91,7 @@ See lessons:
 ##### Responsive tables
 1. Hidden columns
 
+
     @media screen and (max-width:499px) { display:none }
 
 2. No more tables (transpose)
@@ -933,9 +934,11 @@ Shows call stack order, e.g. `.ajax()`, `.send()`, `options.xhr()`, `jQuery.ajax
 
 2. AJAX with fetch
 
+
 `fetch('url') returns a promise.
 
 To add headers:
+
 
     fetch(url, {headers: {Authorization: 'Client-ID ...}}); // Add as property
     
@@ -951,6 +954,7 @@ __Handle response:__
 
 Add a `.then()` to fetch request. E.g.
 
+
     fetch('url', {headers: {Authorization: 'Client-ID ...}})
     .then(function(response) {
         // code, e.g. return response.json
@@ -959,6 +963,7 @@ Add a `.then()` to fetch request. E.g.
 Handle errors through chaining `.catch()`. 
 
 Returned is a response object. In order to get the body of this object, call data type on it (such as `.json` above - alternatives are `.blob`, `.text`, `.formData`...). Then add other `.then()` to get and use returned data. E.g.
+
 
     .then(addImage(data) { }) // Display is same as XHR
 
