@@ -935,7 +935,7 @@ Shows call stack order, e.g. `.ajax()`, `.send()`, `options.xhr()`, `jQuery.ajax
 2. AJAX with fetch
 
 
-`fetch('url') returns a promise.
+`fetch('url')` returns a promise.
 
 To add headers:
 
@@ -967,7 +967,93 @@ Returned is a response object. In order to get the body of this object, call dat
 
     .then(addImage(data) { }) // Display is same as XHR
 
+# Front end applications
+
+### Features of single page apps
+
+Single page apps being self-contained pages with own UI and logic, without page reloads.
+
+__Client-side (_front-end_, updates frequently/without page refresh) versus server-side (_back-end_).__
+
+Frameworks provide:
+1. Templates (V)
+2. URL management (V)
+3. Event handling (C)
+
+What about M? Data is sent off to a server to be saved.
+
+### Backbone
+
+Templates in Backbone are built with special delimiters, that can be found in `underscore.js`, e.g. `<%=` or `<%-`. By default, all delimiters are `%>`. Backbone finds `<%` and `%>` and captures all in between.
+
+___
+_Did you know?_
 
 
+    var adderOne = function(num1, num2) {
+        return num1+num2;
+    };
+    
+    // is the same as
+    
+    var adderTwo = new function("num1", "num2", "return num1+num2");
+
+---
+
+When creating Backbone templates, access your data as properties on an object (`index.html`) and pass that object name in with template's settings (`app.js`). E.g.
 
 
+    template: _.template($('#menuItem-template-'.html(), {variable: 'menuItem'}), ...
+    
+Build your own templating function:
+
+    var template = function(text,options) {
+        var delimiter = { // Delimiter is key
+            open: '*(', // Value one
+            close: ')*' // Value two
+        };
+        var templateString = [];
+        var i=1;
+        var closingDelimiterLoc=0;
+        var functionArguments=[];
+        var theVariable, remaining;
+    
+        var wrapInQuotes = function(text) {
+            return "'" + text + "'";
+        };
+    
+        for (var key in options) { // Update default delimiters with any custom ones
+            if (options.hasOwnProperty(key)) {
+                if (options[key] !== undefined) {
+                    delimiter[key] = options[key];
+                }
+            }
+        }
+
+        var segments = text.split(delimiter.open); // Split on every occurrence of starting delimiter *(
+        var numOfSegments = segments.length;
+    
+        templateString.push(wrapinQuotes(segments[0])); // Push first segment in
+    
+        while (i < numOfSegments) { // If there's more...
+            closingDelimiterLoc = segments[i].indexOf(delimiter.close); // Find locations of closing delimiter for every extra segment
+        
+            theVariable = segments[i].slice(0, closingDelimiterLoc); // Slice out every function argument (variable/segment) from character 0 to the closing delimiter
+            functionArguments.push(theVariable);
+            templateString.push(theVariable); // Push middle segments in (not in quotes, because it's not text but variables)
+        
+            remaining = segments[i].slice(closingDelimiterLoc + delimiter.close.length); // Remaining string at the end of the text
+            templateString.push(wrapinQuotes(remaining)); // Push last segment in
+        
+            i++
+        }
+
+
+        templateString = 'while(times--) {
+            console.log('+templateString.join('+')+') // Join all segments together
+        }';
+        
+        return new Function(functionArguments.join(','), 'times', templateString); // Create the function
+    };
+
+The body of the function has to be a string, __but__ those quotes are removed when inserted into the constructor function (hence `wrapInQuotes`).
