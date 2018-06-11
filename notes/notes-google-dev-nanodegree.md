@@ -1012,7 +1012,7 @@ Build your own templating function:
             open: '*(', // Value one
             close: ')*' // Value two
         };
-        var templateString = [];
+        var templateString = []; // Different segments that will later be joined together to form the body of the constructor function
         var i=1;
         var closingDelimiterLoc=0;
         var functionArguments=[];
@@ -1049,7 +1049,7 @@ Build your own templating function:
         }
 
 
-        templateString = 'while(times--) {
+        templateString = 'while(times--) { // Add loop to log template once for each time
             console.log('+templateString.join('+')+') // Join all segments together
         }';
         
@@ -1057,3 +1057,45 @@ Build your own templating function:
     };
 
 The body of the function has to be a string, __but__ those quotes are removed when inserted into the constructor function (hence `wrapInQuotes`).
+
+##### The browser's event system
+
+The `addEventListener` method is an incredibly important part of the DOM API: `target.addEventListener(type, listener);`. We add an `eventObject` as a function argument if we want to gather information about the event that occurred (e.g. `if` statement).
+
+__Custom events__
+
+What if we want to create our own kind of event? We use the `CustomEvent` API.
+
+    
+    var myCustomEvent= new CustomEvent( 'partyTime', {timeToParty: true, partyYear: 1999} );
+
+    document.addEventListener('partyTime', function(evt) {
+        if (evt.partyYear) {
+            console.log( "Partying like it's " + evt.partyYear + "!");
+        }
+
+        document.body.style.backgroundImage = 'linear-gradient(90deg, orange, blue)';
+    });
+
+    document.dispatchEvent(myCustomEvent); // Trigger event
+
+_How does this work in Backbone?_
+
+Just like before, we get the template from the DOM, convert it to a string, and pass it to `_template`'s function. In app.js, e.g.
+
+
+    var MenuItemView = Backbone.View.extend({
+        events: {
+            'click .select-item': 'selectItem'; // If select-item class is clicked, run selectItem function
+        }, 
+        selectItem: function(e) {
+            e.preventDefault();
+            router.navigate('select/' + this.model.id, {trigger:true});
+        }
+    });
+
+Backbone's `.on()` method adds an `events` object to the object. Each key is the name of an event to listen for, each value a list of callbacks to run. See [this link](http://backbonejs.org/#Events) for how to add events. Do not forget to put the events in quotation marks. The callbacks are not quoted.
+
+An `EventTracker` object can manage its own events (`.on()`). It can also let other objects register with them (`.notify()`) to get notified when an event happens. Trigger events using `.trigger()`.
+
+[...]
