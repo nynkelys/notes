@@ -1099,3 +1099,54 @@ Backbone's `.on()` method adds an `events` object to the object. Each key is the
 An `EventTracker` object can manage its own events (`.on()`). It can also let other objects register with them (`.notify()`) to get notified when an event happens. Trigger events using `.trigger()`.
 
 [...]
+
+# Offline
+
+From online-only to offline-first. 
+
+Offline-first: try offline first and try to get stuff from network just after.
+
+---
+To open a local host for a project:
+1. `git clone` project
+2. `cd` into project folder
+3. run `npm install` to install dependencies
+4. run `npm run serve` to start a second server
+5. open `localhost:8888` in browser
+---
+
+
+To have power over the network, developers use a __service worker__, a simple JavaScript file that sits between you and network requests. It runs separately from your page and cannot access DOM. 
+
+Adding a service worker to a project, in `index.html`:
+
+
+    self.addEventListener('fetch', function(event) {
+        console.log(event.request);
+    });
+
+Registering service worker as soon as app starts up, in lessons in `indexcontroller.js` (indexcontroller's constructor takes care of setup of app):
+
+    if (navigator.serviceWorker) { // Feature detect for cross browser compatibility (if faulty for older browsers, all within if will be ignored)
+        navigator.serviceWorker.register('/sw.js', { // Location of SW script
+            scope: '/my-app/' // Optionally, to demand the SW only controls page(s) whose URL begins with scope
+        }).then(function(reg) { // Returns function, so you can chain
+            console.log('Yay!');
+        }).catch(function(err) {
+            console.log('Boo!');
+        })
+    }
+    
+Scopes are useful, as they let you have a different service worker for each project. The default is determined by the location of the service worker script, so usually you do not have to define scope.
+
+---
+Methods that will only ever be called by other methods of this object: define starting with `_`, e.g. `this._registerServiceWorker();`.
+---
+
+Service workers are limited to __HTTPS__!
+
+### The service worker lifecycle
+
+There are multiple service workers. Updates are downloaded in the background, but the service worker doing this won't take over the old one until the browser opens and closes again. This works as follow. The service worker only takes control of pages when they are loaded. If a page loads via the service worker, it will check for updates to the service worker in the background. Has it changed? Then it becomes the next version. It, however, only takes control when all pages using the current version are gone, to ensure there's only one version running. Seeing that there is always a version that is active, shifting from one to another only works after closing the page.
+
+When the browser refetches a service worker looking for updates, it will go through the browser cache as all requests do. Therefore, keep your cache time 0 on all projects.
