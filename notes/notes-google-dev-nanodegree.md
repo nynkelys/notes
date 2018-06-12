@@ -1140,7 +1140,9 @@ Registering service worker as soon as app starts up, in lessons in `indexcontrol
 Scopes are useful, as they let you have a different service worker for each project. The default is determined by the location of the service worker script, so usually you do not have to define scope.
 
 ---
+
 Methods that will only ever be called by other methods of this object: define starting with `_`, e.g. `this._registerServiceWorker();`.
+
 ---
 
 Service workers are limited to __HTTPS__!
