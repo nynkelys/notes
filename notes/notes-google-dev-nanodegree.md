@@ -1406,6 +1406,193 @@ To fire event on page when value changes (i.e. signal that we should reload page
     });
 
 __To see this in action, see the quiz answer in _lesson 4.13.25___. It is a minor modification of the previous code.
+
+__Then, finally, to swap out the root page for the skeleton page__, you need to bump up the version, add /skeleton to array, request the new URL, compare it with the origin, and take the skeleton out of the new cache.
+
+__FINAL CODE__:
+
+`index.js`:
+
+
+    var staticCacheName = 'wittr-static-v4'; // Bump up version to 4
     
+    self.addEventListener('install', function(event) {
+    
+      event.waitUntil(
+        caches.open(staticCacheName).then(function(cache) {
+          return cache.addAll([
+            '/skeleton', // Cache skeleton instead of root page with all data in it
+            'js/main.js',
+            'css/main.css',
+            'imgs/icon.png',
+            'https://fonts.gstatic.com/s/roboto/v15/2UX7WLTfW3W8TclTUvlFyQ.woff',
+            'https://fonts.gstatic.com/s/roboto/v15/d-6IYplOFocCacKzxwXSOD8E0i7KZn-EPnyo3HZu7kw.woff'
+          ]);
+        })
+      );
+    });
+    
+    self.addEventListener('activate', function(event) {
+      event.waitUntil(
+        caches.keys().then(function(cacheNames) {
+          return Promise.all(
+            cacheNames.filter(function(cacheName) {
+              return cacheName.startsWith('wittr-') &&
+                     cacheName != staticCacheName;
+            }).map(function(cacheName) {
+              return caches.delete(cacheName);
+            })
+          );
+        })
+      );
+    });
+    
+    self.addEventListener('fetch', function(event) {
+      var requestUrl = new URL(event.request.url); // Pause request URL
+    
+      if (requestUrl.origin === location.origin) { // Check if request origin is same as current origin (we only want to intercept route requests for same origin)
+        if (requestUrl.pathname === '/') { // Check pathname - if it's the route, respond with
+          event.respondWith(caches.match('/skeleton')); // The skeleton straight from the cache
+          return; // No need to go back to network, as skeleton is cached as part of install step
+        }
+      }
+    
+    
+      event.respondWith(
+        caches.match(event.request).then(function(response) {
+          return response || fetch(event.request);
+        })
+      );
+    });
+    
+    self.addEventListener('message', function(event) {
+      if (event.data.action === 'skipWaiting') {
+        self.skipWaiting();
+      }
+    });
+
+
+`indexController.js`:
+
+
+    import PostsView from './views/Posts';
+    import ToastsView from './views/Toasts';
+    import idb from 'idb';
+    
+    export default function IndexController(container) {
+      this._container = container;
+      this._postsView = new PostsView(this._container);
+      this._toastsView = new ToastsView(this._container);
+      this._lostConnectionToast = null;
+      this._openSocket();
+      this._registerServiceWorker();
+    }
+    
+    IndexController.prototype._registerServiceWorker = function() {
+      if (!navigator.serviceWorker) return;
+    
+      var indexController = this;
+    
+      navigator.serviceWorker.register('/sw.js').then(function(reg) {
+        if (!navigator.serviceWorker.controller) {
+          return;
+        }
+    
+        if (reg.waiting) {
+          indexController._updateReady(reg.waiting);
+          return;
+        }
+    
+        if (reg.installing) {
+          indexController._trackInstalling(reg.installing);
+          return;
+        }
+    
+        reg.addEventListener('updatefound', function() {
+          indexController._trackInstalling(reg.installing);
+        });
+      });
+    
+      // Ensure refresh is only called once.
+      // This works around a bug in "force update on reload".
+      var refreshing;
+      navigator.serviceWorker.addEventListener('controllerchange', function() {
+        if (refreshing) return;
+        window.location.reload();
+        refreshing = true;
+      });
+    };
+    
+    IndexController.prototype._trackInstalling = function(worker) {
+      var indexController = this;
+      worker.addEventListener('statechange', function() {
+        if (worker.state == 'installed') {
+          indexController._updateReady(worker);
+        }
+      });
+    };
+    
+    IndexController.prototype._updateReady = function(worker) {
+      var toast = this._toastsView.show("New version available", {
+        buttons: ['refresh', 'dismiss']
+      });
+    
+      toast.answer.then(function(answer) {
+        if (answer != 'refresh') return;
+        worker.postMessage({action: 'skipWaiting'});
+      });
+    };
+    
+    // open a connection to the server for live updates
+    IndexController.prototype._openSocket = function() {
+      var indexController = this;
+      var latestPostDate = this._postsView.getLatestPostDate();
+    
+      // create a url pointing to /updates with the ws protocol
+      var socketUrl = new URL('/updates', window.location);
+      socketUrl.protocol = 'ws';
+    
+      if (latestPostDate) {
+        socketUrl.search = 'since=' + latestPostDate.valueOf();
+      }
+    
+      // this is a little hack for the settings page's tests,
+      // it isn't needed for Wittr
+      socketUrl.search += '&' + location.search.slice(1);
+    
+      var ws = new WebSocket(socketUrl.href);
+    
+      // add listeners
+      ws.addEventListener('open', function() {
+        if (indexController._lostConnectionToast) {
+          indexController._lostConnectionToast.hide();
+        }
+      });
+    
+      ws.addEventListener('message', function(event) {
+        requestAnimationFrame(function() {
+          indexController._onSocketMessage(event.data);
+        });
+      });
+    
+      ws.addEventListener('close', function() {
+        // tell the user
+        if (!indexController._lostConnectionToast) {
+          indexController._lostConnectionToast = indexController._toastsView.show("Unable to connect. Retrying…");
+        }
+    
+        // try and reconnect in 5 seconds
+        setTimeout(function() {
+          indexController._openSocket();
+        }, 5000);
+      });
+    };
+    
+    // called when the web socket sends message data
+    IndexController.prototype._onSocketMessage = function(data) {
+      var messages = JSON.parse(data);
+      this._postsView.addPosts(messages);
+    };
+
 ---
 
