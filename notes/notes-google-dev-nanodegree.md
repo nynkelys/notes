@@ -1152,3 +1152,14 @@ Service workers are limited to __HTTPS__!
 There are multiple service workers. Updates are downloaded in the background, but the service worker doing this won't take over the old one until the browser opens and closes again. This works as follow. The service worker only takes control of pages when they are loaded. If a page loads via the service worker, it will check for updates to the service worker in the background. Has it changed? Then it becomes the next version. It, however, only takes control when all pages using the current version are gone, to ensure there's only one version running. Seeing that there is always a version that is active, shifting from one to another only works after closing the page.
 
 When the browser refetches a service worker looking for updates, it will go through the browser cache as all requests do. Therefore, keep your cache time 0 on all projects.
+
+### Service worker in Dev Tools
+
+Under Console, you can choose a service worker in the drop down menu. Debugging works with service workers too (Open service worker in Sources and start debugging). By opening the service worker, I refer to the .js file where so far, we put this code:
+
+
+    self.addEventListener('fetch', function(event) {console.log(event.request);});
+
+Just add a breakpoint by clicking on the line number and then refresh page to pause script there. Then you can inspect the state of objects.
+
+Service worker also has own panel in Application. 'Unregister' lets us unregister the service worker if you want to refetch from scratch.
