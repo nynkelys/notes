@@ -1158,7 +1158,9 @@ When the browser refetches a service worker looking for updates, it will go thro
 Under Console, you can choose a service worker in the drop down menu. Debugging works with service workers too (Open service worker in Sources and start debugging). By opening the service worker, I refer to the .js file where so far, we put this code:
 
 
-    self.addEventListener('fetch', function(event) {console.log(event.request);});
+    self.addEventListener('fetch', function(event) {
+        console.log(event.request);
+    });
 
 Just add a breakpoint by clicking on the line number and then refresh page to pause script there. Then you can inspect the state of objects.
 
@@ -1166,12 +1168,121 @@ Service worker also has own panel in Application. 'Unregister' lets us unregiste
 
 You can __add a new service worker__ (e.g. new branch, change something in .js file), which will then be turned into a _waiting service worker_.
 
-__To get the new service worker active__, as said before we close _all_ pages that use the current service worker, or navigate to another page that is not in the service worker scope. A shortcut for this is to hold `Shift` while refreshing the page!
+__To get the new service worker active__, as said before we close _all_ pages that use the current service worker, or navigate to another page that is not in the service worker scope. A shortcut for this is to hold `Shift` while refreshing the page! Alternatively, tick 'Update on reload' in Application (Service Workers) tab.
 
 ### Hijacking requests
 
 So far requests go:
 page > service worker fetch event > onto the network through the Http cache
 
-What if we want to catch the request as it hits the service worker, and then respond ourselves (nothing goes to network)?
+What if we want to catch the request as it hits the service worker, and then respond ourselves (nothing goes to network - as we are offline)? In service worker script, call `event.respondWith()`, which takes either a response object or a promise that resolves with a response:
+
+
+    self.addEventListener('fetch', function(event) {
+        event.respondWith( // Tells browser we will handle the response to all requests ourselves
+            new Response(bodyOfResponse, { // Body can be blob, buffer, string, ... Can even include HTML
+                headers: {'Content-Type': 'text/html'} // Or whatever, to set certain header values (see changes in Network > click on right URL > see Headers)
+            })
+        );
+    });
+
+Now if you would bring the server down and refresh the page, your body of response will show/do/display!
+
+We can instead go to the network for a response, but not for the thing that was requested, using `fetch(url)` and a _promise_ as the `responseWith()` argument:
+
+    self.addEventListener('fetch', function(event) { // Performs normal browser fetch, so results may come from cache
+        event.respondWith( // Response to all requests
+            fetch('url.com/to/fetch').then(function(response) { // e.g. fetch('/imgs/dr-evil.gif')
+                return response.json(); // Parse
+            }).then(function(data) {
+                console.log(data)
+            }).catch(function() {
+                console.log('Failure!')
+            })
+        );
+    });
+
+
+##### Selective requests
+
+If we do not want to hijack every URL, but, for example, only respond to requests (parts of website) with a url ending in ".jpg":
+
+
+    self.addEventListener('fetch', function(event) {
+        if (event.request.url.endsWith('.jpg')) {
+            event.respondWith(
+                fetch('/imgs/dr-evil.gif')
+            );
+        }
+    });
+
+So far we decided the response based on the request URL.  We can also decide a response based on the response we get back from the network:
+
+
+    self.addEventListener('fetch', function(event) {
+        event.respondWith(
+            fetch(event.request).then(function(response) { // Response we get back from network
+                if (response.status == 404) { // If response is 404: Not found (page does not exist)
+                    return new Response("Whoops, not found"); // Respond with this message
+                }
+                return response; // Otherwise return response we received (the online page)
+            }).catch(function() { // If it can't make a connection to a server at all (it is offline)
+                return new Response('Failure!') 
+            })
+        );
+    });
+
+If we want to display a gif instead:
+
+
+    self.addEventListener('fetch', function(event) {
+      event.respondWith(
+        fetch(event.request).then(function(response) {
+          if (response.status === 404) {
+          // Remember, if you return a promise within a promise, it passes the eventual value to the outer promise, so:
+            return fetch('/imgs/dr-evil.gif'); // We don't need to create a new response promise, but instead we return a fetch
+          }
+          return response;
+        }).catch(function() {
+          return new Response("Uh oh, that totally failed!");
+        })
+      );
+    });
+
+If we want to display the whole web page when offline, we will need to store all HTML, CSS, JavaScript and images in a cache using the `cache` API. Gives us `caches` object on global. To create or open cache: `caches.open('my-stuff').then(function(cache) { // ... });`. That returns promise for cache of that name. If I haven't opened a cache of that name before, it creates one and returns it. 
+
+A cache box contains request and response pairs from any secure origin. We can store stuff from both our own origin as well as elsewhere on the web. Add items using `cache.put(requestOrURL, response)`. To take an array of requests or URLs, fetch them and put request-response pairs into the cache, use `cache.addAll(['/foo', '/bar']);` (if any one fails, none of them are added). To get something out of the cache, use `cache.match(requestOrURL);`, which returns promise if one is found, or null otherwise. `caches.match()` does same, but tries to find match in any cache.
+
+When to store this information? In service worker file, add (above the fetch eventListener):
+
+
+    self.addEventListener('install', function(event) {
+        event.waitUntil( // (takes promise) Signal process of install 
+            caches.open('wittr-static-v1') // (returns promise) Pass promise: if/when it resolves, the browser knows install is complete, when it fails, service worker should be discarded
+            .then(function(cache) {
+                return cache.addAll([ // addAll also returns promise, so I return it
+                    '/', 
+                    'js/main.js', 
+                    'css.main.css', 
+                    'imgs/icon.png', 
+                    'https://fonts.gstatic.com/blabla'
+                ]);
+            })
+        );
+    });
+
+Using cached items in responses:
+
+
+    self.addEventListener('fetch', function(event) {
+    	event.respondWith(
+    		caches.match(event.request)// Search for match in caches for this particular request (if there is nothing, promise = undefined)
+    		.then(function(response) {
+    			if (response) return response; // If it's truthy and I do have a match, return it
+    			return fetch(event.request); // Else, return request
+    		})
+    	);
+    });
+
+##### Unobtrusive app updates
 
