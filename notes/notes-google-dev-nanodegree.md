@@ -1118,14 +1118,14 @@ To open a local host for a project:
 
 To have power over the network, developers use a __service worker__, a simple JavaScript file that sits between you and network requests. It runs separately from your page and cannot access DOM. 
 
-Adding a service worker to a project, in `index.html`:
+__Adding a service worker to a project, in `index.html`:__
 
 
     self.addEventListener('fetch', function(event) {
         console.log(event.request);
     });
 
-Registering service worker as soon as app starts up, in lessons in `indexcontroller.js` (indexcontroller's constructor takes care of setup of app):
+__Registering service worker as soon as app starts up__, in lessons in `indexcontroller.js` (indexcontroller's constructor takes care of setup of app):
 
     if (navigator.serviceWorker) { // Feature detect for cross browser compatibility (if faulty for older browsers, all within if will be ignored)
         navigator.serviceWorker.register('/sw.js', { // Location of SW script
@@ -1163,3 +1163,15 @@ Under Console, you can choose a service worker in the drop down menu. Debugging 
 Just add a breakpoint by clicking on the line number and then refresh page to pause script there. Then you can inspect the state of objects.
 
 Service worker also has own panel in Application. 'Unregister' lets us unregister the service worker if you want to refetch from scratch.
+
+You can __add a new service worker__ (e.g. new branch, change something in .js file), which will then be turned into a _waiting service worker_.
+
+__To get the new service worker active__, as said before we close _all_ pages that use the current service worker, or navigate to another page that is not in the service worker scope. A shortcut for this is to hold `Shift` while refreshing the page!
+
+### Hijacking requests
+
+So far requests go:
+page > service worker fetch event > onto the network through the Http cache
+
+What if we want to catch the request as it hits the service worker, and then respond ourselves (nothing goes to network)?
+
