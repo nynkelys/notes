@@ -1130,7 +1130,7 @@ __Registering service worker as soon as app starts up__, in lessons in `indexcon
     if (navigator.serviceWorker) { // Feature detect for cross browser compatibility (if faulty for older browsers, all within if will be ignored)
         navigator.serviceWorker.register('/sw.js', { // Location of SW script
             scope: '/my-app/' // Optionally, to demand the SW only controls page(s) whose URL begins with scope
-        }).then(function(reg) { // Returns function, so you can chain
+        }).then(function(reg) { // Returns promise, so you can chain
             console.log('Yay!');
         }).catch(function(err) {
             console.log('Boo!');
@@ -1168,7 +1168,7 @@ Service worker also has own panel in Application. 'Unregister' lets us unregiste
 
 You can __add a new service worker__ (e.g. new branch, change something in .js file), which will then be turned into a _waiting service worker_.
 
-__To get the new service worker active__, as said before we close _all_ pages that use the current service worker, or navigate to another page that is not in the service worker scope. A shortcut for this is to hold `Shift` while refreshing the page! Alternatively, tick 'Update on reload' in Application (Service Workers) tab.
+__To get the new service worker active__, as said before we close _all_ pages that use the current service worker, or navigate to another page that is not in the service worker scope. A shortcut for this is to hold `Shift` while refreshing the page!
 
 ### Hijacking requests
 
@@ -1284,5 +1284,128 @@ Using cached items in responses:
     	);
     });
 
+---
+
+Names of all caches: `caches.keys();`. Returns promise.
+
+---
+
 ##### Unobtrusive app updates
+
+To continuously update, we need to make a change to service worker. The browser will then treat this as new version. Because it's new, it will get its own install event, where it will fetch updates and put them in new cache (no disruption of current cache that's used by old service worker). In order to make this new cache happen, we changed the name of our cache. Before anything, __change something in the script that is the 'update'.__ Then you want to delete all old caches. So:
+
+    var staticCacheName = 'wittr-static-v2';
+
+    self.addEventListener('install', function(event) {
+      event.waitUntil(
+        caches.open('wittr-static-v2').then(function(cache) { // Update cache name
+          return cache.addAll([
+            '/',
+            'js/main.js',
+            'css/main.css',
+            'imgs/icon.png',
+            'https://fonts.gstatic.com/s/roboto/v15/2UX7WLTfW3W8TclTUvlFyQ.woff',
+            'https://fonts.gstatic.com/s/roboto/v15/d-6IYplOFocCacKzxwXSOD8E0i7KZn-EPnyo3HZu7kw.woff'
+          ]);
+        })
+      );
+    });
+    
+    self.addEventListener('activate', function(event) {
+      event.waitUntil( // Wait with activation until all old caches are deleted
+        caches.caches.keys().then(function(cacheNames) { // .keys() gives us promise with all cache names
+            return Promise.all( // Wrap in Promise.all() so we wait on completion of all those promises
+                cacheNames.filter(function(cacheName) {
+                    return cacheName.startsWith('wittr-') && // Only interested in caches that start with wittr- (optional, so we don't delete caches from other apps)
+                    cacheName != staticCacheName; // And not in the cache we defined earlier
+                }).map(function(cacheName) { // Map them and delete them
+                    return cache.delete(cacheName);
+                });
+            );
+        });
+      );
+    });
+    
+    self.addEventListener('fetch', function(event) {
+      event.respondWith(
+        caches.match(event.request).then(function(response) {
+          return response || fetch(event.request);
+        })
+      );
+    });
+
+---
+
+Insight into service worker life cycle (remember reg that was the returned promise from the initial registration): `reg.unregister()`, `reg.update()`, `reg.installing`, `reg.waiting`, `reg.active`. The registration object will emit an event when a new update is found:
+
+
+    reg.addEventListener('updatefound', function() {
+        // ...
+    });
+
+When fired, `.installing` has become the new worker.
+
+##### How to tell users about updates
+
+On the service workers themselves (`var sw = reg.installing;`), you can look at their state (`console.log(sw.state);`).
+State can be `installing` (install event is fired, but has not completed), `installed` (installed successfully), `activating` (activate event has fired, but not complete), `activated` (activated successfully, ready to receive fetch events), `redundant` (service worker has been thrown away).
+
+Service worker fires event:
+
+
+    sw.addEventListener('statechange', function() { // Whenever state value changes, this is fired
+        // ...
+    });
+
+Also, `navigator.serviceWorker.controller` refers to the service worker that controls this page. So, all in once, in indexController.js where you registered the service worker:
+
+    IndexController.prototype._registerServiceWorker = function() { // Ignore this
+      if (!navigator.serviceWorker) return; // Ignore this
+    
+      var indexController = this; // Ignore this
+    
+      navigator.serviceWorker.register('/sw.js').then(function(reg) {
+        if (!navigator.serviceWorker.controller) { // If there's no controller, user already has latest version as they are using network, so
+          return; // Exit early
+        }
+        if (reg.waiting) { // If there's an update ready and waiting
+          indexController._updateReady(); // Call function that notifies user about update (stored in object indexController)
+        }
+        if (reg.installing) { // If updated worker is installing
+          reg.installing.addEventListener('statechange', function() { // Track progress (this anonymous function can also be put in function that is called here as e.g. indexController._trackInstalling(reg.installing) / This function can be placed in IndexController.prototype._trackInstalling = function(worker) {var indexController = this; worker.addEventListener('statech...
+            if (this.state == 'installed') { // If it becomes installed
+              indexController._updateReady(); // Call notification
+            }
+          });
+          return; // Otherwise, early exit
+        }
+        reg.addEventListener('updatefound', function() { // Otherwise, listen for new installing workers arriving
+          reg.installing.addEventListener('statechange', function() { // If one arrives, track state of installing worker
+            if (this.state === 'installed') { // If it reaches installed state...
+                indexController._updateReady(); // Inform user
+            }
+          });
+        });
+      });
+    };
+    
+    IndexController.prototype._updateReady = function() { // This is the function that places the notification
+      var toast = this._toastsView.show("New version available", { // This is what will show after an update
+        buttons: ['whatever']
+      });
+    };
+
+##### Let the user decide whether they want the update or not    
+Button users can press to get the latest version: button needs to tell waiting service worker to take over straight away, bypassing usual cycle. Then refresh page so it reloads with latest assets from newest cache. To achieve this, we use `self.skipWaiting()` (self is service worker), called when user hits refresh. To send signal from page to waiting service worker: `reg.installing.postMessage({foo: 'bar'});`. To receive/listen for signal from page in service worker: `self.addEventListener('message', function(event) { event.data }; });`, where event.data is {foo: 'bar'}.
+
+To fire event on page when value changes (i.e. signal that we should reload page):
+
+
+    navigator.serviceWorker.addEventListener('controllerchange', function() { // navigator.serviceWorker.controller has changed, meaning a new service worker has taken over
+        // ... 
+    });
+
+__To see this in action, see the quiz answer in _lesson 4.13.25___. It is a minor modification of the previous code.
+    
+---
 
