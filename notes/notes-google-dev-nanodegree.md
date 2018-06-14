@@ -335,7 +335,181 @@ Run pending event handlers (event loop: call stack, web API/browser, event queue
         // code
     }, 1000);
 
-[...]
+# Assistive technology semantics
+
+__Using the keyboard only.__ 
+
+`tab`: forward, `shift` + `tab`: backwards, `up, down, left, right` arrow: navigate within.
+
+### TAB ORDER (corresponds with DOM order)
+
+`tabindex` attribute (applied to any html element). Only add this to interactive elements*:
+
+`-1` = not in tab order, can be focused with `.focus()` method.
+
+`0` = in tab order and can be focused with `.focus()` method.
+
+Above `0` = jump element to front of tab order (works way up: 1, 2, 3, ...). DISCOURAGED.
+
+[*] Except for single page designs with anchors (managing focus). Use the -1 value for that.
+
+To skip a link (e.g. navigation):
+
+
+    <a href="#maincontent" class="skip-link">Skip</a> // Step 1, put in DOM before navigation
+    <main id="maincontent" tabindex="-1"></main> // Step 2, ID of other element on page
+
+In CSS, `.skip-link` has:
+
+
+    position: absolute,
+    top: -40px, // To hide it on page as it's above navigation
+
+And `.skip-link:focus` has this, which matches every time corresponding element gains focus, after which it appears back on screen:
+
+
+    top: 0;
+
+Roving focus/tabindex (basically toggling tabindex), `tabindex="-1";` on all elements except currently active one. That one gets `0` and `checked` attribute. Then change tabindex after keyboard event listener on compoonent, next item is `0`, previous one is `1`, call focus method, `checked` goes down. Repeat. So that:
+
+Tab into is active radio focus, left/right arrow is another radio focus, another tab is focus out of radio group, tab back in is last active radio gets focus.
+
+---
+
+To find where focus is: DevTools (`document.activeElement`).
+
+---
+
+Avoid the keyboard trap (except for temporary ones)! 
+
+`display:none` and `visibility:hidden` both prevent focusin on an element an all children inside it, as it opts element out of tab order. Set this back after the focus has passed in the DOM.
+
+Type of element: element role.
+
+Modified tree (DOM tree without any visual elements): accessibility tree (a11y tree).
+
+### SEMANTICS
+
+Role, name/label, value, state.
+
+Name/label can be visible, or it can be invisible (`alt` attribute, which will only be used if image is not available). Not having an `alt` attribute means image is not present in a11y tree.
+
+
+---
+
+JavaScript headings snippet to see all headers:
+
+
+    for (var i = 0; headings = $$('h1,h2,h3,h4,h5,h6'); i < headings.length; i++) {
+        console.log(headings[i].textContent.trim()+" "+headings[i].tagName, headings[i]);
+    };
+    
+---
+
+_LINKS_
+
+Use anchor tag (`<a>`) with `href` attribute.
+
+Use button tag.
+
+Image with link: use `alt` text.
+
+Use descriptive texts and don't use `<span>`.
+
+Page structure (use these in HTML and CSS, they are more descriptive):
+`header, main, footer, nav, article, section, aside`.
+
+### WAI-ARIA
+
+Used for fake, non-native elements; changes elements role, state and properties and finetunes accessible names for elements.
+
+With ARIA, we can specify attributes on elements which modify the way that element is translated into the a11y tree. E.g. `<div>` that is actually checkbox: add `<div role="checkbox" aria-checked="true">` (or `false`) in same area as tabindex attribute. _ARIA is always applied to `<div>`!_.
+
+Other ways to label: `aria-label` and `aria-labelledby` (element is labelled by another element. It is therefore relational. Other relational ARIA attributes are `aria-owns, aria-activedescendant, aria-describedby, aria-posinset` and `aria-setsize`. Activedescendant makes focus appear somewhere other than webpage focus. Posinset refers to position of items, setsize to number of visible items. All of these go to `id`'s.).
+
+Landmarks that ARIA offers:
+`role` = `banner, search, dialog, navigation, main, complementary, contentinfo`.
+
+__What is hidden in the a11y tree?__
+
+All that is explicitly hidden (`display:none, visibility:hidden, <span hidden>`). 
+
+__What is not hidden in the a11y tree?__
+
+Not hidden, and therefore often used as screenreader-only content:
+
+
+    .screenreader {
+        position: absolute;
+        left: -10000px; // Far off screen
+    }
+
+Also not hidden are `aria-label` in HTML, `aria-labelledby` in HTML, `aria-describedby` in HTML referencing to an element which is otherwise hidden.
+
+__What is excluded from screenreaders but not visually?__
+
+`aria-hidden:true;`
+
+__How to alert screen readers:__
+
+`aria-live = "off"` (default)
+
+`aria-live = "polite"` (alert user to change after finishing what you were doing)
+
+`aria-live = "assertive"` (interrupt and alert immediately)
+
+`aria-live` region should be in initial page load. To finetune this:
+
+`aria-atomic = "true"` (take whole container to screen reader (e.g. if only month is updated, also read day and year)
+
+`aria-relevant = "additions"/"text"/"removals"/"all"` (what info is read out loud)
+
+`aria-busy = "true"` (temporarily ignore changes to element)
+
+### Style
+
+Focus ring:
+
+    
+    :focus {
+        outline: ...; // Can be used in combo with :hover / Add styles to both
+    }
+
+Remove default focus:
+
+
+    .class:focus {
+        outline: 0; // But in general, just stick with focus
+    }
+    
+Just target before pseudo element:
+
+
+    .class:focus::before {
+        box-shadow: 0 0 1px #5b9dd9;
+    }
+
+Replace CSS classes with aria-attributes! Then, you can verify that aria-states are set correctly because they trigger actual visual updates to the component.
+
+_STYLES FOR ENTIRE SITE:_
+
+Responsiveness:
+1. Use meta viewport tag
+
+
+    <meta name="viewport" content= "width=device-width, initial-scale=1">
+
+2. Design with responsive grid
+
+Use `%` (relative to containing block), `em` (" font-size of parent, for text), `rem` (" root, for text).
+
+3. Use appropriate touch targets with a minimal size of 48px. Around each touch target, add a 32DIP margin to avoid overlap.
+
+_COLOR AND CONTRAST:_
+
+Minimum contrast ratio is `4.5:1` for body text and images, `3:1` for large text of over 18px or 14px-bold). For low vision enhanced, these ratios are `7:1` and `4.5:1`.
+
+In DevTools, use Audits to chec accessibility. Click on item to see accessibility properties. Color should not be the only thing to point out the difference. Check this with high-contrast mode.
 
 # Object-oriented programming in JavaScript
 
