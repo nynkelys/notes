@@ -405,9 +405,8 @@ Name/label can be visible, or it can be invisible (`alt` attribute, which will o
 JavaScript headings snippet to see all headers:
 
 
-    for (var i = 0; headings = $$('h1,h2,h3,h4,h5,h6'); i < headings.length; i++) {
-        console.log(headings[i].textContent.trim()+" "+headings[i].tagName, headings[i]);
-    };
+    for (var i = 0, headings = $$('h1,h2,h3,h4,h5,h6'); i < headings.length; i++)
+	console.log(headings[i].textContent.trim() + " " + headings[i].tagName, headings[i]);
     
 ---
 
@@ -499,7 +498,7 @@ Replace CSS classes with aria-attributes! Then, you can verify that aria-states 
 _STYLES FOR ENTIRE SITE:_
 
 Responsiveness:
-1. Use meta viewport tag
+1. Use meta viewport tag (on every `.html` file!!!)
 
 
     <meta name="viewport" content= "width=device-width, initial-scale=1">
@@ -1297,7 +1296,7 @@ To open a local host for a project:
 
 To have power over the network, developers use a __service worker__, a simple JavaScript file that sits between you and network requests. It runs separately from your page and cannot access DOM. 
 
-__Adding a service worker to a project, in `index.html`:__
+__Adding a service worker to a project, in `index.js`:__
 
 
     self.addEventListener('fetch', function(event) {
@@ -1492,13 +1491,13 @@ To continuously update, we need to make a change to service worker. The browser 
     
     self.addEventListener('activate', function(event) {
       event.waitUntil( // Wait with activation until all old caches are deleted
-        caches.caches.keys().then(function(cacheNames) { // .keys() gives us promise with all cache names
+        caches.keys().then(function(cacheNames) { // .keys() gives us promise with all cache names
             return Promise.all( // Wrap in Promise.all() so we wait on completion of all those promises
                 cacheNames.filter(function(cacheName) {
                     return cacheName.startsWith('wittr-') && // Only interested in caches that start with wittr- (optional, so we don't delete caches from other apps)
                     cacheName != staticCacheName; // And not in the cache we defined earlier
                 }).map(function(cacheName) { // Map them and delete them
-                    return cache.delete(cacheName);
+                    return caches.delete(cacheName);
                 });
             );
         });
