@@ -1774,3 +1774,374 @@ __FINAL CODE__:
 
 ---
 
+# React
+
+##### Composition
+Composition occurs when simple functions are combined together to create more complex functions. Think of each function as a single building block that does one thing (DOT). When you combine these simple functions together to form a more complex function, this is composition. E.g.
+
+
+    function getProfileLink (username) {
+      return 'https://github.com/' + username
+    }
+    
+    function getProfilePic (username) {
+      return 'https://github.com/' + username + '.png?size=200'
+    }
+    
+    function getProfileData (username) {
+      return {
+        pic: getProfilePic(username),
+        link: getProfileLink(username)
+      }
+
+##### Imperative vs. declarative
+_Imperative_ code instructs JavaScript on how it should perform each step (e.g. for loop with iterator, length of loop, storing in new array). With _declarative_ code, we tell JavaScript what we want to be done, and let JavaScript take care of performing the steps (e.g. for loop with `.map()`). __React is declarative.__
+
+##### Data flow
+Unidirectional: In React, data flows in only one direction, from parent to child(ren). The component that stores the data (the parent element) should be the one that updates the data.
+
+##### React and JS
+Important JS functions for React: `.map()` and `.filter()`. 
+
+`.map()`: Gets called on an existing array and __returns a new array__ based what's returned from the function that's passed as an argument. E.g.
+
+
+    const musicData = [
+        { artist: 'Adele', name: '25', sales: 1731000 },
+        { artist: 'Drake', name: 'Views', sales: 1608000 },
+        { artist: 'Beyonce', name: 'Lemonade', sales: 1554000 },
+        { artist: 'Chris Stapleton', name: 'Traveller', sales: 1085000 },
+        { artist: 'Pentatonix', name: 'A Pentatonix Christmas', sales: 904000 },
+        { artist: 'Original Broadway Cast Recording', 
+          name: 'Hamilton: An American Musical', sales: 820000 },
+        { artist: 'Twenty One Pilots', name: 'Blurryface', sales: 738000 },
+        { artist: 'Prince', name: 'The Very Best of Prince', sales: 668000 },
+        { artist: 'Rihanna', name: 'Anti', sales: 603000 },
+        { artist: 'Justin Bieber', name: 'Purpose', sales: 554000 }
+    ];
+    const albumSalesStrings = musicData.map(datum => `${datum.name} by ${datum.artist} sold ${datum.sales} copies`);
+ 
+ Returns:
+ 
+ 
+    [ '25 by Adele sold 1731000 copies',
+     'Views by Drake sold 1608000 copies',
+     'Lemonade by Beyonce sold 1554000 copies', ... ] // etc.
+
+`.filter()`: Similar to `.map()`, but only returns items in array that pass 'test'. 
+
+
+    const results = musicData.filter(datum => datum.name.length > 9 && datum.name.length < 26);
+
+Returns:
+
+
+    [ { artist: 'Pentatonix', name: 'A Pentatonix Christmas', sales: 904000 },
+      { artist: 'Twenty One Pilots', name: 'Blurryface', sales: 738000 },
+      { artist: 'Prince', name: 'The Very Best of Prince', sales: 668000 } ]
+
+Both can be combined, e.g. to log only the artists that sold over 1000000 copies:
+
+        const popular = musicData.filter(datum => datum.sales > 1000000).map(datum => `${datum.artist} is a great performer`);
+
+First run filter, then run map!
+
+## Rendering UI
+
+React uses objects instead of string literals to build UI. The building blocks of React are components. 
+
+1. Creating elements (will return plain JS object)
+
+
+    React.createElement( /* type */, /* props */, /* content */ );
+
+Type is either string or React Component.
+
+Props is either null or an object.
+
+Content is either null, a string, a React Element, or a React Component. We can also pass other elements as the third element, just passing another (or multiple) `.createElement`(s) or a `.map()` function that refers to an earlier declared array, in there. This creates nested HTML. E.g.
+
+
+    const people = [ {name: 'Pete'}, {name: 'Jane'}];
+    const element = React.createelement('ol', {key: person.name}, people.map(person => React.createElement('li', null, person.name)));
+    
+When you use an array, React needs a unique key prop to every child element.
+
+Note that we are describing DOM nodes, not HTML strings. So:
+
+
+    const element = React.createElement('div', {className: 'welcome-message'}, 'hello world');
+
+works, while:
+
+
+    const element = React.createElement('div', {class: 'welcome-message'}, 'hello world');
+    
+does not, even though in the HTML file it's displayed as:
+
+
+    <div data-reactroot class="welcome-message">hello world</div>
+
+2. Placing elements in the DOM
+
+    ReactDOM.render( /* type */, /* position */ ); e.g.
+    ReactDOM.render(element, document.getElementById('root'));
+
+### JSX (syntax extension, used instead of createElement)
+
+
+    const element = <ol><li>{people[0].name}</li></ol> // Note curly braces!
+
+    or, more complex:
+    
+    const element = <ol>
+        {people.map(person => 
+        ( <li key={person.name}>{person.name}</li>
+        ))}
+        </ol>
+
+### Rendering components
+
+Typically, though, instead of `.createElement()` and JSX, we'll use one of React's key features, Components, to construct our UI.
+
+React provides a base component class that we can use to group many elements together. You can think of your component classes as factories that produce instances of components. These component classes should follow the single responsibility principle and just "do one thing".
+
+
+    class ContactList extends React.component { // Or extends Component, dependent on way you import module at beginning of script
+        render() {
+            const people = [
+                { name: 'Michael' },
+                { name: 'Ryan' },
+                { name: 'Tyler }
+            ]
+            
+            return = <ol>
+                {people.map(person => {
+                    <li key={person.name}>{person.name}</li>
+                ))}
+            </ol>
+        }
+    }
+    
+    ReactDOm.render(<ContactList/>, document.getElementById('root'));
+
+As you can see above, we render and treat as if they were a single element.
+
+### webpack
+
+Build tool for React. JSX is awesome, but it does need to be transpiled into regular JavaScript before reaching the browser. We typically use a transpiler like Babel to accomplish this for us. We can run Babel through a build tool, like Webpack which helps bundle all of our assets (JavaScript files, CSS, images, etc.) for web projects.
+To streamline these initial configurations, we can use Facebook's Create React App package to manage all the setup for us! 
+
+    npm install -g create-react-app
+
+Create app:
+
+
+    create-react-app contacts // Or whatever name you want to give project
+
+This will create the project in the folder you're in.
+
+CD into project folder and start development server:
+
+
+     npm start
+     
+This will automatically open a browser window with the app.
+
+In the code: the JSX class (`class App extends Component`) can be found under `App.js`, while the render function can be found under `index.js`. `index.html` shows the HTML document that all of the JS is running in.
+
+__So:__ Build solo elements, each within `class ~whatever~ extends Component`. Then invoke all of those elements in `class App extends Component`, like so:
+
+
+    class ContactList extends React.Component {
+        render() {
+            const people = this.props.contacts
+            
+            return <ol> 
+                {people.map(person => {
+                    <li key={person.name}>{person.name}</li>
+                ))}
+            </ol>
+        }
+    }
+
+    class App extends Component {
+        render() {
+            return (
+                <div className="App">
+                    <ContactList contacts={[
+                        { name: 'Michael' },
+                        { name: 'Ryan' },
+                        { name: 'Tyler }
+                    ]}/>
+                    <ContactList contacts={[ // Just use again, with different props
+                        { name: 'Pete' },
+                        { name: 'Jane' },
+                        { name: 'Erica }
+                    ]}/>
+                </div>
+            );
+        }
+    }
+
+### State management
+
+_Props_: allow to pass data into components.
+
+_Functional components_: alternative to creating React components.
+
+_Controlled components_: allow to hook up forms in application to component state.
+
+Note: at the end of our components (each component is a separate file), we export it (`export default ListContacts`) so that we can import it inside of our `app.js` file.
+
+You always have to specify `render()`!!! In render, access data through this.props. As the class is linked to `app.js` (by importing it), it will find the right data.
+
+So, as functions have arguments, components have props.
+
+E.g. 
+1. You have an array
+2. You pass it down to your class component as a prop
+3. Inside of the component (which is specified in a separate file), we do something with this.props.whatYouPassedDown. Any prop that's passed into the component is accessible on the `this.props` object.
+
+Passing multiple props individually to component, e.g. a JS function (like `Date.now()`) and a normal string:
+
+
+    <Component propOne={javaScript.thing()} propTwo='String'/>
+
+##### RECAP
+
+A prop is any input that you pass to a React component. Just like an HTML attribute, a prop name and value are added to the Component.
+
+
+    // passing a prop to a component
+    <LogoutButton text='Wanna log out?' />
+
+In the code above, text is the prop and the string 'Wanna log out?' is the value. All props are stored on the this.props object. So to access this text prop from inside the component, we'd use this.props.text:
+
+
+    // access the prop inside the component
+    ...
+    render() {
+        return <div>{this.props.text}</div>
+    }
+    ...
+
+### Stateless functional components
+
+If your component does not keep track of internal state (i.e., all it really has is just a render() method), you can declare the component as a Stateless Functional Component. A.k.a. __if all your component has is the render method__, instead of creating component as class
+
+
+    class User extends React.Component {
+        render() {
+            return (
+                <p> Username: {this.props.username} </p>
+            )
+        }
+    }
+
+we can also create it as normal function, and use
+
+
+    function User(props) { // Props passed as argument here
+        return (
+            <p> Username: {props.username} </p> // No longer using this!
+        )
+    }
+
+Stateless functional components:
+1. Take in props
+2. Return descriptions of UI
+3. Don't use the this keyword
+
+A more elaborate example:
+
+
+    import  React, { Component } from 'react'
+
+    function ListContacts (props) {
+      return (
+        <ol className='contact-list'>
+          {props.contacts.map((contact) => (
+            <li key={contact.id} className='contact-list-item'>
+              <div className='contact-avatar' style={{
+                backgroundImage: `url(${contact.avatarURL})`
+              }}/>
+              <div className='contact-details'>
+                <p>{contact.name}</p>
+                <p>{contact.email}</p>
+              </div>
+              <button className='contact-remove'>
+                Remove
+              </button>
+            </li>
+          ))}
+        </ol>
+      )
+    }
+    
+    export default ListContacts
+
+### State (current state of application)
+Earlier in this Lesson, we learned that props refer to attributes from parent components. In the end, props represent "read-only" data that are immutable. A component's state, on the other hand, represents mutable data that ultimately affects what is rendered on the page.
+
+Put your data in the App class, as an object to state! That way, React can manage the state.
+
+
+    class App extends Component {
+        state = {
+            contacts: [{...
+
+A component's state can be defined at initialization. A component can alter its own internal state. By having a component manage its own state, any time there are changes made to that state, React will know and automatically make the necessary updates to the page. We just have to think about updating state and React compares the previous output and new output, determines what has changed, and makes these decisions for us (Reconciliation). Again: _state reflects mutable information that ultimately affects rendered output_.
+
+`setState` is used to update the state. We can pass it a function, having previous state as argument. We use this if we are updating the new state based on the current state. We can also pass in an object, which will be merged with the current states. We usually use the second method. __Your UI, then, is just a function of your state.__
+
+Method 1:
+
+
+    removeContact = (contact) => {
+        this.setState((state) => ({
+        ...
+        }))
+
+Method 2:
+
+
+    removeContact = (contact) => {
+        this.setState({
+        ...
+        
+    }
+    
+Type checking a component's props with `Proptypes`: run `npm install --save prop-types`. Then, in the component: `import PropTypes from 'prop-types'`, and in ListContacts.js, specify:
+
+    ListContacts.propTypes = {
+    	contacts: PropTypes.array.isRequired,
+    	onDeleteContact: PropTypes.func.isRequired
+    } // Note that it kind of serves as nice documenation for how to use this component itself!
+
+### Controlled components
+
+Components which render a form, but the source of truth for that form lives inside of the component state, rather than inside the DOM. Benefits:
+1. Instant input validation
+2. Conditionally disable/enable buttons
+3. Enforce input formats
+
+__See lesson 5.3.7.__ To recap how user input affects the ListContacts component's own state in the example: The user enters text into the input field; An event listener invokes the updateQuery() function on every onChange event; updateQuery() then calls setState(), merging in the new state to update the component's internal state; because its state has changed, the ListContacts component re-renders.
+
+With Controlled Components, our form state lives inside of the component. Because of this, we can easily update our UI based on that form state.
+
+##### React developer tools
+
+Allows us to inspect component hierarchy along with respective props and states. 
+
+##### Using destructuring to make code cleaner
+
+Instead of `this.props.contacts` etc., we can just declare our variables as such:
+
+
+    const { contacts, onDeleteContact } = this.props
+    const { query } = this.state
+
+and simply use `contacts` etc. instead.
+
+
