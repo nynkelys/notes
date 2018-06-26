@@ -2148,3 +2148,115 @@ When it comes to keeping track of data in your app, think about what will be don
 
 On the other hand, if some information isn't expected to change over time, and is generally designed to be "read-only" throughout your app, consider using props instead. Both state and props will generally be in the form of an object, and changes in either will trigger a re-render of the component, but they each play very different roles in your app.
 
+### Fetch data from a database
+
+Do not make AJAX request inside render(); this should be free of side-effects and asynchronously. Instead, use __componentDidMount lifecycle event__. Lifecycle events are special methods each component can have that allow us to hook into the views when specific conditions happen.
+
+`componentWillMount`: invoked immediately before component is inserted in DOM.
+
+`componentDidMount`: invoked immediately after the component is inserted into the DOM. Should be used if you're fetching remote data or doing an AJAX request.
+
+`componentWillUnmount()`: invoked immediately before a component is removed from the DOM.
+
+`componentWillReceiveProps()`: invoked whenever the component is about to receive brand new props.
+
+##### componentDidMount()
+
+Is used as just another function in the class of the component file. E.g.
+
+
+    import React, { Component } from 'react';
+    import fetchUser from '../utils/UserAPI';
+    
+    class User extends Component {
+      constructor(props) {
+        super(props)
+    
+        this.state = {
+          name: '',
+          age: ''
+        }
+      }
+    
+      componentDidMount() {
+        fetchUser().then((user) => this.setState({
+          name: user.name,
+          age: user.age
+        }))
+      }
+    
+      render() {
+        return (
+          <div>
+            <p>Name: {this.state.name}</p> // Empty string at first, so don't actually display, only until component has been mounted, data is fetched and setState() is called and updates properties. Since state has changed, render() gets called again, which re-renders page with values.
+            <p>Age: {this.state.age}</p> // "
+          </div>
+        )
+      }
+    }
+
+    export default User;
+
+In recap, the following lifecycle events are used for the following purposes:
+1. Adding to the DOM: `constructor()`, `componentWillMount()` (!), `render()` and `componentDidMount()` (!).
+2. Re-rendering: `componentWillReceiveProps()` (!), `shouldComponentUpdate()`, `componentWillUpdate()`, `render()`, and `componentDidUpdate()`.
+3. Removing from the DOM: `componentWillUnmount()` (!).
+
+[!!!] In graph, see: https://d17h27t6h515a5.cloudfront.net/topher/2017/June/59519fa9_nd019-c1-l4-lifecycle-events/nd019-c1-l4-lifecycle-events.png.
+
+### Managing app location with React Router
+
+React router is a tool that let's us use React to build a Single Page App. It turns React projects into single-page applications, by providing a number of specialized components that manage the creation of links, manage the app's URL, provide transitions when navigating between different URL locations, etc.
+
+To install, run:
+
+
+    npm install --save react-router-dom
+
+##### <BrowserRouter/>
+
+Listens to changes in URL and makes sure right screen shows up. In `index.js`, import this BrowserRouter (`import { BrowserRouter } from 'react-router-dom'` and wrap `<App/>` (`<BrowserRouter><App/></BrowserRouter>`). This sets up the router for the whole app.
+
+When you use BrowserRouter, you're creating a `history` object which will listen to changes in the URL and make sure your app is made aware of those changes.
+
+##### <Link/>
+
+With `Link`, we provide declarative, accessible navigation around your application, used instead of anchor tags (`<a>`). By passing a to property to the Link component, you tell your app which path to route to.
+
+
+    <Link to="/about" className="about">About</Link>
+
+You could also pass an object into the `to` prop:
+
+    <Link to={{
+      pathname: '/courses',
+      search: '?sort=name',
+      hash: '#the-hash',
+      state: { fromDashboard: true }
+    }}>
+      Courses
+    </Link>
+
+##### <Route/>
+
+The final component is `<Route/>`. It takes a path that will match the URL or not. If so, route will render UI. If not, it doesn't render anything. 
+
+Again, first import route in `App.js`. Then add the  to our render method. Do not forget the difference between partial paths and exact paths!!!
+
+
+      render() {
+        return (
+          <div className="app">
+          	<Route exact path="/" render={() => ( // Only match exactly this, not if part of the URL is /
+    	      	<ListContacts
+    	        contacts={this.state.contacts}
+    	        onDeleteContact={this.removeContact}
+    	        />
+    	        )}/>
+          	<Route path="/create" component={CreateContact}/>
+          </div>
+        )
+      }
+
+To see how to create a form and store the values that are inserted to be used later, see __lesson 5.5.6__!
+
