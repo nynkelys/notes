@@ -1853,6 +1853,7 @@ React uses objects instead of string literals to build UI. The building blocks o
 1. Creating elements (will return plain JS object)
 
 
+
     React.createElement( /* type */, /* props */, /* content */ );
 
 Type is either string or React Component.
@@ -1863,7 +1864,7 @@ Content is either null, a string, a React Element, or a React Component. We can 
 
 
     const people = [ {name: 'Pete'}, {name: 'Jane'}];
-    const element = React.createelement('ol', {key: person.name}, people.map(person => React.createElement('li', null, person.name)));
+    const element = React.createElement('ol', {key: person.name}, people.map(person => React.createElement('li', null, person.name)));
     
 When you use an array, React needs a unique key prop to every child element.
 
@@ -1883,6 +1884,7 @@ does not, even though in the HTML file it's displayed as:
     <div data-reactroot class="welcome-message">hello world</div>
 
 2. Placing elements in the DOM
+
 
     ReactDOM.render( /* type */, /* position */ ); e.g.
     ReactDOM.render(element, document.getElementById('root'));
@@ -1927,7 +1929,7 @@ React provides a base component class that we can use to group many elements tog
 
 As you can see above, we render and treat as if they were a single element.
 
-### webpack
+### Webpack
 
 Build tool for React. JSX is awesome, but it does need to be transpiled into regular JavaScript before reaching the browser. We typically use a transpiler like Babel to accomplish this for us. We can run Babel through a build tool, like Webpack which helps bundle all of our assets (JavaScript files, CSS, images, etc.) for web projects.
 To streamline these initial configurations, we can use Facebook's Create React App package to manage all the setup for us! 
@@ -1994,7 +1996,7 @@ _Controlled components_: allow to hook up forms in application to component stat
 
 Note: at the end of our components (each component is a separate file), we export it (`export default ListContacts`) so that we can import it inside of our `app.js` file.
 
-You always have to specify `render()`!!! In render, access data through this.props. As the class is linked to `app.js` (by importing it), it will find the right data.
+You always have to specify `render()`!!! In render, access data through `this.props`. As the class is linked to `app.js` (by importing it), it will find the right data.
 
 So, as functions have arguments, components have props.
 
@@ -2082,7 +2084,7 @@ A more elaborate example:
     export default ListContacts
 
 ### State (current state of application)
-Earlier in this Lesson, we learned that props refer to attributes from parent components. In the end, props represent "read-only" data that are immutable. A component's state, on the other hand, represents mutable data that ultimately affects what is rendered on the page.
+Earlier in this lesson, we learned that props refer to attributes from parent components. In the end, props represent "read-only" data that are immutable. A component's state, on the other hand, represents mutable data that ultimately affects what is rendered on the page.
 
 Put your data in the App class, as an object to state! That way, React can manage the state.
 
@@ -2206,7 +2208,7 @@ In recap, the following lifecycle events are used for the following purposes:
 
 ### Managing app location with React Router
 
-React router is a tool that let's us use React to build a Single Page App. It turns React projects into single-page applications, by providing a number of specialized components that manage the creation of links, manage the app's URL, provide transitions when navigating between different URL locations, etc.
+React router is a tool that lets us use React to build a Single Page App. It turns React projects into single-page applications, by providing a number of specialized components that manage the creation of links, manage the app's URL, provide transitions when navigating between different URL locations, etc.
 
 To install, run:
 
@@ -2260,3 +2262,337 @@ Again, first import route in `App.js`. Then add the  to our render method. Do no
 
 To see how to create a form and store the values that are inserted to be used later, see __lesson 5.5.6__!
 
+### Getting started with the APIs
+
+##### Google maps
+
+Map types: road map (default), satellite, hybrid, terrain.
+
+Load a Google Map into your site (you can separate JS into separate file):
+
+
+     <body>
+        <div id="map"></div> // Add DIV with map ID
+        <script>
+            var map; // Add map variable
+            function initMap() { // Add function to load map after page loads/before user interacts with map
+                // Constructor creates a new map instance - only center and zoom are required. First specification is where in page to load map (the map div), second is what part of world to show. Zoom can go up to 21.
+                map = new google.maps.Map(document.getElementById('map'), {
+                    center: {lat: 40.7413549, lng: -73.9980244},
+                    zoom: 13
+                });
+            }
+        </script>
+        // Add this script tag to load API (add own API key)
+        <script async defer
+            src="https://maps.googleapis.com/maps/api/js?key=MYAPIKEY&v=3&callback=initMap">
+        </script> 
+
+    </body>
+
+##### Highlight one spot on the map (in your JS file)
+
+INSIDE `InitMap()` FUNCTION: 
+
+Map your listings by creating variables using latlong coordinates. E.g.
+
+
+    var home = {lat: 52.589679, lng: 13.469670};
+
+To make it appear on the map, we create a marker. We can add more properties, here are some examples:
+
+
+    var marker = new google.maps.Marker({
+        position: home, // Where marker should appear
+        map: map, // The map it should appear on
+        title: 'Random spot!' // Appears when hovering over (optional)
+    });
+  
+Add an info window to a marker:
+
+
+    var infowindow = new google.maps.InfoWindow({
+        content: 'Whatever!'
+    });
+    marker.addListener('click', function() { // To tell it when and where to open, as it doesn't open automatically like the marker does
+        infowindow.open(map, marker);
+    });
+
+##### Highlight multiple spots on the map
+
+Create array of locations.
+
+
+    var locations = [
+          {title: 'Park Ave Penthouse', location: {lat: 40.7713024, lng: -73.9632393}},
+          {title: 'Chelsea Loft', location: {lat: 40.7444883, lng: -73.9949465}},
+          {title: 'Union Square Open Floor Plan', location: {lat: 40.7347062, lng: -73.9895759}},
+          {title: 'East Village Hip Studio', location: {lat: 40.7281777, lng: -73.984377}},
+          {title: 'TriBeCa Artsy Bachelor Pad', location: {lat: 40.7195264, lng: -74.0089934}},
+          {title: 'Chinatown Homey Space', location: {lat: 40.7180628, lng: -73.9961237}}
+        ];
+
+Add a blank marker array globally (__outside of initMap() function!__).
+
+    var markers = [];
+
+Then, inside `initMap()`:
+
+        var largeInfowindow = new google.maps.InfoWindow();
+        var bounds = new google.maps.LatLngBounds();
+
+        // Loop throug locations array in order to create one marker per location (markers array).
+        for (var i = 0; i < locations.length; i++) {
+            // Get the position from the location array.
+            var position = locations[i].location;
+            var title = locations[i].title;
+            // Create a marker per location, and put into markers array.
+            var marker = new google.maps.Marker({
+                map: map,
+                position: position,
+                title: title,
+                animation: google.maps.Animation.DROP,
+                id: i
+            });
+            // Push the newly created marker(s) to our array of markers.
+            markers.push(marker);
+            // Create an onclick event to open an infowindow at each marker (so still in loop).
+            marker.addListener('click', function() {
+                populateInfoWindow(this, largeInfowindow); // Open 'this' (marker that was clicked), and populate with infowindow.
+            });
+            
+            // As we may have listings that are outside the initial zoom area, we want to be able to extend the boundaries to fit everything
+            bounds.extend(markers[i].position); // Extend the boundaries of the map for each marker
+          }
+
+            map.fitBounds(bounds); // Tell map to fit itself to bounds
+
+
+      // Every time marker is clicked, this populate info window function is called:
+      function populateInfoWindow(marker, infowindow) {
+        // Check to make sure the infowindow is not already opened on this marker.
+        if (infowindow.marker != marker) {
+          infowindow.marker = marker;
+          infowindow.setContent('<div>' + marker.title + '</div>'); // Set content
+          infowindow.open(map, marker); // Open window on marker
+          // Make sure the marker property is cleared if the infowindow is closed.
+          infowindow.addListener('closeclick',function(){
+            infowindow.setMarker = null;
+          });
+        }
+      }
+
+What if we don't want all the markers to show right away? What if we want them to become visible on the click of a button? First create two buttons.
+
+
+    <div>
+        <input id="show-listings" type="button" value="Show Listings">
+        <input id="hide-listings" type="button" value="Hide Listings">
+    </div>
+
+We will make an event listener for each button. Inside `initMap()`:
+
+
+    document.getElementById('show-listings').addEventListener('click', showListings); // Clicking show-listings button calls showListings function
+    document.getElementById('hide-listings').addEventListener('click', hideListings); // Clicking hide-listings button calls hideListings function
+    
+What we then change in the code above, is that we 1) don't set the map parameter on those markers right away and we 2) won't extend the bounds of the map just yet. We move these things to out `showListings` function:
+
+
+    // This function will loop through the markers array and display them all.
+    function showListings() {
+      var bounds = new google.maps.LatLngBounds();
+      // Extend the boundaries of the map for each marker and display the marker
+      for (var i = 0; i < markers.length; i++) {
+        markers[i].setMap(map); // Set the map to map on each of the markers
+        bounds.extend(markers[i].position); // Extend bounds of map to fit each of the markers
+      }
+      map.fitBounds(bounds);
+    }
+
+Conversely:
+
+
+    function hideListings() {
+      for (var i = 0; i < markers.length; i++) {
+        markers[i].setMap(null); // Sets map to null on each marker (doesn't delete, just hides)
+      }
+    }
+
+---
+
+To get the latlng: use `marker.position`.
+
+---
+
+##### Adding some style
+
+Things we can change: features (land, water, roads, points of interests and their labels, ...).
+
+In `initMap()`, create styles array. Styled maps use concepts to apply colors and changes to a map, map features (geographic elements that can be targeted), elements (what about the feature you want to change), stylers (visibility properties that can be applied to map features, like color, hue or weight). 
+
+---
+
+You can also use styling starters that are freely available online! Just google Google Maps API Styles.
+
+---
+
+
+    var styles = [
+          {
+            featureType: 'water',
+            stylers: [
+              { color: '#19a0d8' }
+            ]
+          },{
+            featureType: 'administrative',
+            elementType: 'labels.text.stroke',
+            stylers: [
+              { color: '#ffffff' },
+              { weight: 6 }
+            ]
+          },{
+            featureType: 'administrative',
+            elem ...
+          }
+        ];
+
+Then, in map object, add property `styles: styles`, in addition to zoom and center. You can also add `mapTypeControl: false` which allows user to change map type to road, terrain, satellite, etc. (`false` _disables_ that feature).
+
+##### Custom map types
+
+See [this link](https://developers.google.com/maps/documentation/javascript/examples/maptype-styled-simple) for an example on how to add (optional) custom map types. For style documentation, see [this link](https://developers.google.com/maps/documentation/javascript/reference/3/map#MapTypeStyle).
+
+##### Google street view
+
+Important aspects: what place we are looking at and point of view: from east or west (heading), from down or up (pitch).
+
+These things need to be defined dynamically for each of our points.
+
+Go back to `populateInfoWindow()` in code. It needs to do more than just create a string in the window. We first create a `streetViewService` object inside the function. This needs to get the panorama image based on the closest location to the marker. And it needs to find out which way to point the camera, heading and pitch.
+
+
+    var streetViewService = new. google.maps.StreetViewService();
+    var radius = 50; // Radius to look for StreetView image within (in case there is no image of exact location)
+
+We use the following function and pass in position of marker, radius and call our getStreetView function (see below).
+
+
+    streetViewService.getPanoramaByLocation(marker.position, radius, getStreetView);
+    
+    function getStreetView(data, status) {
+        if (status == google.maps.StreetViewStatus.OK) {
+              var nearStreetViewLocation = data.location.latLng; // Take nearby streetview location
+              // Compute heading based on location of nearest streetview and location of marker
+              var heading = google.maps.geometry.spherical.computeHeading(
+                nearStreetViewLocation, marker.position);
+                infowindow.setContent('<div>' + marker.title + '</div><div id="pano"></div>');
+            var panoramaOptions = {
+                position: nearStreetViewLocation,
+                pov: {
+                    heading: heading, // Heading we just computed
+                    pitch: 30 // 30 means we look slightly up
+                }
+            };
+            // Create that object, put it inside infowindow at the div with id of pano
+            var panorama = new google.maps.StreetViewPanorama(
+                document.getElementById('pano'), panoramaOptions);
+        } else { // If no image is found, then put that info in the window
+              infowindow.setContent('<div>' + marker.title + '</div>' +
+                '<div>No Street View Found</div>');
+        }
+    }
+
+__As we use the library, we have to define `libraries=geometry` in the `src` attribute!__ `src="https://maps.googleapis.com/maps/api/js?key=MYAPIKEY&libraries=geometry&v=3&callback=initMap"`.
+
+Another library is the visualization library (for e.g. heat maps). `src="https://maps.googleapis.com/maps/api/js?key=MYAPIKEY&libraries=visualizations&v=3&callback=initMap"`.
+
+If you want to use the __StreetView functionality without a map__, use URL as image and pass in parameters location, heading, pitch, size. Use in any image element. Similarly, if you want to display simple __non effective map__, no need for full JS API, just use static maps API (required parameters: center, zoom, key, size).
+
+Another library is `drawing` (`src="https://maps.googleapis.com/maps/api/js?key=MYAPIKEY&libraries=drawing&v=3&callback=initMap"`). To use this library and enable drawing, tell the map we plan to draw on it (in `initMap()`):
+
+
+    var drawingManager = new google.maps.drawing.DrawingManager({
+        drawingMode: google.maps.drawing.OverlayType.POLYGON, // Default drawing mode (other: rectangle, circle, polyline, marker)
+        drawingControl: true,
+        drawingControlOptions: {
+            position: google.maps.ControlPosition.TOP_LEFT,
+            drawingModes: [ // Polygon is specified as ONLY drawing mode
+                google.maps.drawing.OverlayType.POLYGON
+            ]
+        }
+    });
+
+Then, create a HTML button to allow user to toggle drawing tools, and an event listener in JS file:
+
+
+    <span class="text"> Draw a shape to search within it for homes!</span>
+    <input id="toggle-drawing"  type="button" value="Drawing Tools">
+    
+    document.getElementById('toggle-drawing').addEventListener('click', function() {
+        toggleDrawing(drawingManager);
+    });
+    
+    // Where ...
+    
+    // This shows and hides (respectively) the drawing options.
+        function toggleDrawing(drawingManager) { // When user clicks on toggle drawing...
+            if (drawingManager.map) { ...check map property on drawingManager: if it's map...
+                drawingManager.setMap(null); ...set it to null (hide drawing manager)
+                // In case the user drew anything and turns off drawing tools, get rid of the polygon (but keep markers)
+            if (polygon !== null) {
+                polygon.setMap(null);
+            }
+            } else {
+                drawingManager.setMap(map); // Set to map (show drawing manager)
+            }
+        }
+
+Now we can draw, but how do we search within it? We need an event listener so that when a polygon is drawn, we capture those points and use them.
+
+To ensure only one polygon is rendered, create a global variable (so, outside of `initMap()`):
+
+
+    var polygon = null;
+
+Then, inside `initMap()`, so that when polygon is complete, we iterate through markers array, show all of the ones that are within:
+
+
+    drawingManager.addListener('overlaycomplete', function(event) {
+        // First, check if there is an existing polygon.
+        // If there is, get rid of it and remove the markers
+        if (polygon) {
+            polygon.setMap(null);
+            hideListings(markers);
+        }
+        // Switching the drawing mode to the HAND (i.e., no longer drawing).
+        drawingManager.setDrawingMode(null); // Also so that user can click on marker
+        // Creating a new editable polygon from the overlay.
+        polygon = event.overlay; // Capture overlay that was drawn
+        polygon.setEditable(true); // We want polygon to be editable
+        // Searching within the polygon.
+        searchWithinPolygon();
+        // Make sure the search is re-done if the poly is changed.
+        polygon.getPath().addListener('set_at', searchWithinPolygon); // EL on polygon itself, checking for changes and re-executing search
+        polygon.getPath().addListener('insert_at', searchWithinPolygon);
+    });
+    
+    // This function hides all markers outside the polygon, and shows only the ones within it. This is so that the user can specify an exact area of search.
+    function searchWithinPolygon() {
+        for (var i = 0; i < markers.length; i++) {
+            if (google.maps.geometry.poly.containsLocation(markers[i].position, polygon)) {
+                markers[i].setMap(map); // If it does match, we set map property to map on each marker, which shows it.
+            } else {
+                markers[i].setMap(null); // If not, we set it to null, which hides it.
+            }
+        }
+    }
+
+---
+
+Extra: if you want to calculate the area within a polygon and alert the user about it, use:
+
+
+    var area = google.maps.geometry.spherical.computeArea(polygon.getPath());
+        window.alert(area + " SQUARE METERS");
+    });
