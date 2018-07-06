@@ -2596,3 +2596,461 @@ Extra: if you want to calculate the area within a polygon and alert the user abo
     var area = google.maps.geometry.spherical.computeArea(polygon.getPath());
         window.alert(area + " SQUARE METERS");
     });
+
+### Geo coding (place > latlng)
+
+Can be server side (no user input needed, returns JSON/XML), e.g. as part of process ran in script, or client side (no data yet, user input needed), as part of user facing code.
+
+##### Interpreting results of geocoding web service
+
+We can make a request through typing in our browser, e.g.: `https://maps.googleapis.com/maps/api/geocode/json?address=775+Park+Avenue,+New+York,+NY&key=YOURAPIKEY` (we can choose either json or xml). For reverse geocoding, we'd provide the latlng instead of the address (`https://maps.googleapis.com/maps/api/geocode/json?latlng=33.1262476,-117.3115765&key=YOURAPIKEY`). 
+
+`address_components` has information broken down such as street, town, neighborhood, country, state, etc. This is interesting if we'd do reverse geocoding, where we'd have latlng but not the exact address.
+
+We also get `formatted_address` that we can use on its own. 
+
+`geometry` amongst others contains the latlng of the actual location (`location`) and the location type (`location_type`). 
+
+`place_id` is an unique identifier for any place ranging from a whole country to a single address. This can be used in conjunction with the Places API.
+
+##### Incorporating web service into app
+
+Since we will need user input, we use client side.
+
+__Prompt user to focus on specific area__: 
+
+Add text input field and zoom button in HTML.
+
+
+    <input id="zoom-to-area-text" type="text" placeholder="Enter your favorite area!">
+    <input id="zoom-to-area" type="button" value="Zoom">
+
+Then, in `initMap()`:
+
+    document.getElementById('zoom-to-area').addEventListener('click', function() { // When button is clicked ...
+        zoomToArea(); // ... call function
+    });
+
+In which the function is used to take user entered address, geocode it to get latlng, and center map on that latlng and zoom in.
+
+    function zoomToArea() {
+        var geocoder = new google.maps.Geocoder(); // Create new geocoder instance
+        var address = document.getElementById('zoom-to-area-text').value; // Capture address or place
+        // Make sure the address isn't blank.
+        if (address == '') { // Make sure it's not blank
+            window.alert('You must enter an area, or address.');
+        } else {
+          geocoder.geocode( // Geocode the address
+            { address: address,
+                componentRestrictions: {locality: 'New York'} // Add restriction: address must be within New York
+            }, function(results, status) {
+                if (status == google.maps.GeocoderStatus.OK) { // Check whether result is OK
+                    map.setCenter(results[0].geometry.location); // Use resulting latlng to recenter ... *
+                    map.setZoom(15); // ... and zoom
+                } else { // If results were not OK ...
+                    window.alert('We could not find that location - try entering a more specific place.'); // ... alert
+                }
+            });
+        }
+    }
+
+[*] _Most of the time, we get more than one result from a geocoding response. We usually take the 0th option in the array of responses._
+
+##### Elevation
+
+`https://maps.googleapis.com/maps/api/elevation/json?locations=33.1262476,-117.3115765&key=YOURAPIKEY` HTTP request gives us elevation information.
+
+##### Distance matrix
+
+`https://maps.googleapis.com/maps/api/distancematrix/json?origins=New+York,+NY&destinations=San+Francisco&key=YOURAPIKEY` HTTP request computes travel distance and journey duration between multiple origins and destinations, given a mode of travel (needs `key` and at least one `destination` and `origin` pair, which together are called an `element` in the results). _Distance value defaults to meters, duration value defaults to seconds, transport defaults to driving._
+
+Optional parameters in HTTP request: `mode=bicycling` (`/driving/walking/transit`, for transit we can specify modes with `transit_mode=` such as `rail, bus, subway, ...`), `avoid=highways`. There's many more parameters!
+
+__Incorporate this into your app__:
+
+
+In HTML:
+
+
+        <div>
+          <span class="text"> Within </span>
+          <select id="max-duration">
+            <option value="10">10 min</option>
+            <option value="15">15 min</option>
+            <option value="30">30 min</option>
+            <option value="60">1 hour</option>
+          </select>
+          <select id="mode">
+            <option value="DRIVING">drive</option>
+            <option value="WALKING">walk</option>
+            <option value="BICYCLING">bike</option>
+            <option value="TRANSIT">transit ride</option>
+          </select>
+          <span class="text">of</span>
+          <input id="search-within-time-text" type="text" placeholder="Ex: Google Office NYC or 75 9th Ave, New York, NY">
+          <input id="search-within-time" type="button" value="Go">
+        </div>
+
+Then, as usual, an event listener:
+
+
+    document.getElementById('search-within-time').addEventListener('click', function() {
+        searchWithinTime();
+    });
+
+And associated function that uses DistanceMatrixService to calculate distances and travel duration between markers and entered location:
+
+
+    function searchWithinTime() {
+        var distanceMatrixService = new google.maps.DistanceMatrixService; // Initialize the distance matrix service.
+        var address = document.getElementById('search-within-time-text').value; // Capture address
+        // Check to make sure the place entered isn't blank.
+        if (address == '') {
+            window.alert('You must enter an address.');
+        } else {
+            hideListings();
+            var origins = []; // Create origins array from list of markers
+            for (var i = 0; i < markers.length; i++) {
+                origins[i] = markers[i].position;
+            }
+            var destination = address; // Use user entered address as destination
+            var mode = document.getElementById('mode').value; // Capture travel mode
+          // Now that both the origins and destination are defined, get all the info for the distances between them.
+            distanceMatrixService.getDistanceMatrix({ // Call function
+                origins: origins, // Pass in origins
+                destinations: [destination], // Pass in single destination
+                travelMode: google.maps.TravelMode[mode], // Pass in travel mode
+                unitSystem: google.maps.UnitSystem.IMPERIAL, // Specify unit to be imperial
+            }, function(response, status) {
+                if (status !== google.maps.DistanceMatrixStatus.OK) { // Check if status of response is OK
+                    window.alert('Error was: ' + status); // More specific error message than in previous function!
+                } else {
+                    displayMarkersWithinTime(response); // Parse through response to get useful data (see below)
+                }
+            });
+        }
+    }
+
+The `displayMarkersWithinTime()` is a new function:
+
+
+    // Go through each of the results, and, if distance is LESS than value in picker, show it on the map.
+    function displayMarkersWithinTime(response) {
+        var maxDuration = document.getElementById('max-duration').value; // Capture user entered max duration in minutes
+        var origins = response.originAddresses; // Recapture origins and destination from response
+        var destinations = response.destinationAddresses;
+        // Parse through the results, and get the distance and duration of each.
+        // Because there might be  multiple origins and destinations we have a nested loop
+        // Then, make sure at least 1 result was found.
+        var atLeastOne = false;
+        for (var i = 0; i < origins.length; i++) { // Nested loop to create one element per origin and destination pair
+            var results = response.rows[i].elements;
+            for (var j = 0; j < results.length; j++) {
+                var element = results[j]; // Element will have distance and duration from A to B
+                if (element.status === "OK") {
+                    var distanceText = element.distance.text; // Distance is returned in feet, but the TEXT is in miles. If we wanted to switch the function to show markers within a user-entered DISTANCE, we would need the value for distance, but for now we only need the text. We want both this and duration in text form as we will display it to users.
+                    var duration = element.duration.value / 60; // Duration value is given in seconds so we make it MINUTES. We need value here because we will compare it to maximum value user entered.
+                    var durationText = element.duration.text; // We need both the value and the text.
+                    if (duration <= maxDuration) { // If duration is within maximum value entered by user ...
+                        markers[i].setMap(map); // ... display marker on map
+                        atLeastOne = true; // If there are no markers within area, we want to let user know
+                        var infowindow = new google.maps.InfoWindow({ // For each marker that appears, create a mini infowindow to open immediately ...
+                            content: durationText + ' away, ' + distanceText // ... with Duration and Distance
+                        });
+                        infowindow.open(map, markers[i]);
+
+                        markers[i].infowindow = infowindow;
+                        google.maps.event.addListener(markers[i], 'click', function() { // Add this on each marker so that if user clicks on it, little info window is closed and make room for big one that has panorama (ACTUALLY LOOKS LIKE PANORAMA WINDOW DOESN'T WORK)
+                            this.infowindow.close();
+                        });
+                    }
+                }
+            }
+        }
+        if (!atLeastOne) {
+            window.alert('We could not find any locations within that distance!');
+        }
+    }
+
+##### Directions API
+
+Instead of just time and region, this API gives step by step directions from point A to B and even C through Z if needed. Inputs, amongst others: travel `mode`, `multiple transit modes`, `transit routing preferences`, `restrictions`, `waypoints` or `via` (to specifiy additional destination or pass-through: __divide multiple waypoints using `|`__). If you specify `optimize:true` in your waypoints, the API will do the planning for you and make the most efficient route past all waypoints. Origins, destinations and waypoints are defined as strings or as latlng coordinates. The API can return multi-port directions using a series of waypoints or via points. _Waypoints are NOT supported for the transit travel mode!_
+
+`https://maps.googleapis.com/maps/api/directions/json?origin=New+York,+NY&destination=San+Francisco&key=YOURAPIKEY`: single origin and destination pair (either latlng or string). 
+
+In output, check `routes` (divided into `legs`).
+
+__Using it in the app__:
+
+What if we want to add a button inside info window on marker inside the listings in a specific area, that shows route?
+
+First, add button 'view route' inside info window, so that in total this part looks like:
+
+
+    var infowindow = new google.maps.InfoWindow({
+        content: durationText + ' away, ' + distanceText +
+            '<div><input type=\"button\" value=\"View Route\" onclick =' +
+            '\"displayDirections(&quot;' + origins[i] + '&quot;);\"></input></div>' // As we could have multiple listings falling within commute limit, we pass in that origin (listing address) for each button we make
+    });
+    // Destination we will use is user entered address
+
+Then, the function:
+
+    
+    function displayDirections(origin) {
+        hideListings();
+        var directionsService = new google.maps.DirectionsService; // Initialize new direction service instance
+        var destinationAddress = document.getElementById('search-within-time-text').value; // Get the destination address again from the user entered value.
+        var mode = document.getElementById('mode').value; // Get mode again from the user entered value.
+        directionsService.route({ // Now we calculate the route
+            origin: origin, // The origin is the passed in marker's position
+            destination: destinationAddress, // The destination is user entered address
+            travelMode: google.maps.TravelMode[mode]
+        }, function(response, status) { // When we get back response ...
+            if (status === google.maps.DirectionsStatus.OK) { // ... we make sure status is OK ...
+                var directionsDisplay = new google.maps.DirectionsRenderer({ // ... and create new directions renderer (takes care of displaying all information)
+                    map: map, // Render on our map
+                    directions: response, // Get directions from route response
+                    draggable: true, // Want route to be draggable
+                    polylineOptions: {
+                        strokeColor: 'green' // We want to display resulting polyline in green
+                    }
+                });
+            } else {
+                window.alert('Directions request failed due to ' + status);
+            }
+        });
+    }
+
+In the directions renderer, we could also display the step by step directions to the user. For that, we need to specify HTML div to put route in by setting `panel` parameter in the directions renderer.
+
+##### Roads API
+
+Only work with Premium Plan. See lessons.
+
+##### Places API
+
+Search for places.
+
+For example, __update text input areas to use autocomplete__:
+
+First, include other library in the URL that also specifies `geometry` and `drawing`: `places`. Then, in `initMap()`, initialize two new instances and bind them to the input boxes:
+
+
+    var timeAutocomplete = new google.maps.places.Autocomplete( // For use in search within time entry box.
+        document.getElementById('search-within-time-text'));
+    var zoomAutocomplete = new google.maps.places.Autocomplete( // For use in geocoder entry box.
+            document.getElementById('zoom-to-area-text'));
+
+These autocompleters will predict what user is typing with each keystroke and supply most likely options in pick list. We can add more options to this, such as bias towards certain area, type for type of results and component restriction to restrict results to within certain country. E.g. we could add, on a new line, `zoomAutocomplete.bindTo('bounds', map);`.
+
+__Find nearby places of interest within the map.__ What if we want to add a search box? This is different from Autocomplete, as it provides an extended list of predictions, which can include places as defined by Google Places API and search queries such as 'pizza near Google office'. We, however, can't restrict as much as Autocomplete.
+
+First, add new section to HTML.
+
+
+    <div>
+        <span class="text">Search for nearby places</span>
+        <input id="places-search" type="text" placeholder="Ex: Pizza delivery in NYC">
+        <input id="go-places" type="button" value="Go">
+    </div>
+
+Then, create new SearchBox instance in `initMap()`:
+
+
+    var searchBox = new google.maps.places.SearchBox(
+        document.getElementById('places-search')); // And bind new instance to text input we just created
+        searchBox.setBounds(map.getBounds()); // Bias the searchbox to within the bounds of the map
+
+Then, create two event listeners:
+
+
+    // Listen for the event fired when the user selects a prediction from the picklist and retrieve more details for that place.
+    searchBox.addListener('places_changed', function() { // When user selects option from pick list (places_changed event)
+        searchBoxPlaces(this);
+    });
+
+    // Listen for the event fired when the user selects a prediction and clicks "go" more details for that place.
+    document.getElementById('go-places').addEventListener('click', textSearchPlaces); // If user types in something and clicks 'go' without selecting suggestion
+
+Then, create global `var placeMarkers = [];` to use in both functions, so we can control them separately from listing markers and so that we only have one set of markers on our map at a time.
+
+We now change `hideMarkers()` to make it more generic by adding `markers` as an argument. Now, it can be used anytime to hide any array of markers on the map. Don't forget to add markers as argument whenever we invoke(d) this function!
+
+    function hideMarkers(markers) {
+        for (var i = 0; i < markers.length; i++) {
+            markers[i].setMap(null);
+        }
+    }
+
+Then, function that executes when user chooses picklist value from SearchBox:
+
+
+    function searchBoxPlaces(searchBox) { // This function will do a nearby search using the selected query string or place
+        hideMarkers(placeMarkers); // Hide all markers we had on map from last search
+        var places = searchBox.getPlaces(); // Then, find all places that match query
+        // For each place, get the icon, name and location.
+        createMarkersForPlaces(places); // If we do find places, run this function (we will also need it for textSearchPlaces, hence defining it as separate function)
+        if (places.length == 0) { // If no places were found, alert
+            window.alert('We did not find any places matching that search!');
+        }
+    }
+
+Then,
+
+
+    function textSearchPlaces() { // This function if user instead of picking from pick list, enters search query and clicks 'go'
+        var bounds = map.getBounds(); // Capture bounds of map
+        hideMarkers(placeMarkers);
+        var placesService = new google.maps.places.PlacesService(map);
+        placesService.textSearch({
+            query: document.getElementById('places-search').value, // Pass in user entered query
+            bounds: bounds
+        }, function(results, status) { // Results is places array
+            if (status === google.maps.places.PlacesServiceStatus.OK) {
+                createMarkersForPlaces(results); // If OK, pass in places array here
+            }
+        });
+    }
+
+So, for both functions above we get an array of places back. We iterate through them and create marker per place!
+
+
+    // This function creates markers for each place found in either places search.
+    function createMarkersForPlaces(places) {
+        var bounds = new google.maps.LatLngBounds();
+        for (var i = 0; i < places.length; i++) { // For each place, we capture bunch of info about the place
+            var place = places[i];
+            var icon = { // Specify what icon looks like that we pass in as Marker property value below
+                url: place.icon,
+                size: new google.maps.Size(35, 35),
+                origin: new google.maps.Point(0, 0),
+                anchor: new google.maps.Point(15, 34),
+                scaledSize: new google.maps.Size(25, 25)
+            };
+            // Create a marker for each place.
+            var marker = new google.maps.Marker({
+                map: map,
+                icon: icon,
+                title: place.name,
+                position: place.geometry.location,
+                id: place.id // Used later to get more details if user clicks on marker
+            });
+            // If a marker is clicked, do a place details search on it in the next function.
+            marker.addListener('click', function() {
+                getPlacesDetails(this, place); // This is marker
+            });
+            placeMarkers.push(marker); // Push each marker into placeMarkers array
+            if (place.geometry.viewport) { // Adjust bounds of map to appropriately fit all markers
+                // Only geocodes have viewport.
+                bounds.union(place.geometry.viewport);
+            } else {
+                bounds.extend(place.geometry.location);
+            }
+        }
+        map.fitBounds(bounds);
+    }
+
+So, how to get details of these places? We use `placeId`. Check it out: `https://maps.googleapis.com/maps/api/place/details/json?placeid=ChIJN1t_tDeuEmsRUsoyG83frY4&key=YOURAPIKEY`. We can add onClick to markers that'll display details about each marker.
+
+We now add to our `createMarkersForPlaces()`.
+
+
+    function createMarkersForPlaces(places) {
+        var bounds = new google.maps.LatLngBounds();
+        for (var i = 0; i < places.length; i++) { 
+            var place = places[i];
+            var icon = { 
+                url: place.icon,
+                size: new google.maps.Size(35, 35),
+                origin: new google.maps.Point(0, 0),
+                anchor: new google.maps.Point(15, 34),
+                scaledSize: new google.maps.Size(25, 25)
+            };
+            // Create a marker for each place.
+            var marker = new google.maps.Marker({
+                map: map,
+                icon: icon,
+                title: place.name,
+                position: place.geometry.location,
+                id: place.id 
+            });
+            var placeInfoWindow = new google.maps.InfoWindow(); // ADD SINGLE INFO WINDOW THAT WILL SHARE BETWEEN DIFFERENT PLACE MARKERS THAT WE ONLY HAVE ONE SET OF DETAILS OPEN AT ONCE
+            marker.addListener('click', function() { // CHANGE THIS EVENT LISTENER INTO THE FOLLOWING
+                if (placeInfoWindow.marker == this) {
+                    console.log("This infowindow already is on this marker!");
+                } else {
+                    getPlacesDetails(this, placeInfoWindow);
+                }
+            });
+            placeMarkers.push(marker); 
+            if (place.geometry.viewport) { 
+                // Only geocodes have viewport.
+                bounds.union(place.geometry.viewport);
+            } else {
+                bounds.extend(place.geometry.location);
+            }
+        }
+        map.fitBounds(bounds);
+    }
+
+With the `getPlacesDetails()`:
+
+
+    // Most detailed so only executed when marker is selected.
+    function getPlacesDetails(marker, infowindow) {
+        var service = new google.maps.places.PlacesService(map);
+        service.getDetails({
+            placeId: marker.id // We set placeId as marker.id before
+        }, function(place, status) { // Get back results
+            if (status === google.maps.places.PlacesServiceStatus.OK) { // Status OK? Parse through all data from request
+                // Set the marker property on this infowindow so it isn't created again.
+                infowindow.marker = marker;
+                var innerHTML = '<div>';
+                if (place.name) {
+                    innerHTML += '<strong>' + place.name + '</strong>';
+                }
+                if (place.formatted_address) {
+                    innerHTML += '<br>' + place.formatted_address;
+                }
+                if (place.formatted_phone_number) {
+                    innerHTML += '<br>' + place.formatted_phone_number;
+                }
+                if (place.opening_hours) {
+                    innerHTML += '<br><br><strong>Hours:</strong><br>' +
+                        place.opening_hours.weekday_text[0] + '<br>' +
+                        place.opening_hours.weekday_text[1] + '<br>' +
+                        place.opening_hours.weekday_text[2] + '<br>' +
+                        place.opening_hours.weekday_text[3] + '<br>' +
+                        place.opening_hours.weekday_text[4] + '<br>' +
+                        place.opening_hours.weekday_text[5] + '<br>' +
+                        place.opening_hours.weekday_text[6];
+                }
+                if (place.photos) {
+                    innerHTML += '<br><br><img src="' + place.photos[0].getUrl({ // We include first photo ref we get
+                        maxHeight: 100,
+                        maxWidth: 200
+                    }) + '">';
+                }
+                innerHTML += '</div>';
+                infowindow.setContent(innerHTML);
+                infowindow.open(map, marker);
+                // Make sure the marker property is cleared if the infowindow is closed.
+                infowindow.addListener('closeclick', function() {
+                    infowindow.marker = null;
+                });
+            }
+        });
+    }
+
+There are some specific details about Places API requests. Check out `Nearby Search` (formerly Place Search), `Text Search` and `Radar Search`. 
+
+##### Timezone API
+
+Find timezone:
+
+`https://maps.googleapis.com/maps/api/timezone/json?location=51.5073509,-0.1277582999&timestamp=1459468800&key=YOURAPIKEY` where timestamp is convertable online.
+
+##### Geolocation API
+
+For devices that don't have locations built in natively. 
