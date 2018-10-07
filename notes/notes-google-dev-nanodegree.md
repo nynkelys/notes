@@ -3054,3 +3054,87 @@ Find timezone:
 ##### Geolocation API
 
 For devices that don't have locations built in natively. 
+
+---
+
+### Random lost notes
+
+##### Arrow functions
+
+ES5
+
+
+    var multiply = function (x, y) {
+        return x * y
+    };
+    
+    // or
+    
+    var splitter = function splitterOne(p) {
+        return p.split('')
+    };
+
+Es6
+
+
+    const multiply = (x, y) => {
+        return x * y
+    };
+    // ... where the curly brackets are not required.
+    
+    // or
+    
+    const splitter = p => p.split('')
+
+##### React
+
+MAIN
+
+
+    import React
+    import Component
+    
+    class App extends Component {
+        state = { ... }
+        
+        functionOne = (arg) => { ... }
+        
+        render() { // Only used for displaying content
+            return (
+                // HTML referring back to functionOne
+            )
+        }
+    }
+    
+    export default App;
+
+Sometimes, instead, write:
+
+    constructor(props) {
+        super(props)
+        this.state = { ... }
+    }
+
+COMPONENT
+
+    
+    import React
+    import library
+    
+    class ComponentName extends Component {
+        static propTypes = { ... }
+        
+        state = { ... }
+        
+        functionTwo = (arg) => { ... }
+        
+        render() {
+            return(
+                // HTML referring back to functionTwo
+            )
+        }
+    }
+    
+    export default ComponentName;
+
+__Single page application:__ Web apps that load a single HTML page and dynamically update that page as the user interacts with the app. Much of the work happens on the client side, in JavaScript.
